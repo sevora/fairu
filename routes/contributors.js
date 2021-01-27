@@ -1,3 +1,7 @@
+/*
+ * Everything under /contributors API is handled here
+ * not yet complete or fully implemented.
+ */
 const router = require('express').Router();
 let Contributor = require('../models/contributor.js');
 

@@ -15,23 +15,25 @@ import CloudUploadIcon from '@material-ui/icons/CloudUpload';
 
 const useStyles = makeStyles({ root: { width: 500 } });
 
-//
+// functional style of a component
+// uses react's hook to keep its state
 export default function MobileNavigationBar() {
     const classes = useStyles();
-    const [value, setValue] = React.useState('home'); // This highlights 'home' right away
+    const [value, setValue] = React.useState(window.location.pathname); // This highlights 'home' right away
 
-    //
+    // event handler for the current value of 
+    // the highlighted part in mobile navigation
     const handleChange = (event, newValue) => {
         setValue(newValue);
     };
 
-    //
+    // always returns JSX
     return (
         // Styling here is used to position this on the bottom part always 
         <BottomNavigation value={value} onChange={handleChange} showLabels className={classes.root} style={{ width: '100%', position: 'fixed', bottom: 0 }}>>
-            <BottomNavigationAction label="Home" value="home" component={Link} to={'/'} icon={<HomeIcon />}/>
-            <BottomNavigationAction label="Find" value="list" component={Link} to={'/list'} icon={<ListIcon />}/>
-            <BottomNavigationAction label="Upload" value="upload" component={Link} to={'/upload'} icon={<CloudUploadIcon />}/> 
+            <BottomNavigationAction label="Home" value="/" component={Link} to={'/'} icon={<HomeIcon />}/>
+            <BottomNavigationAction label="Find" value="/list" component={Link} to={'/list'} icon={<ListIcon />}/>
+            <BottomNavigationAction label="Upload" value="/upload" component={Link} to={'/upload'} icon={<CloudUploadIcon />}/> 
         </BottomNavigation>
     );
 }

@@ -2,10 +2,10 @@
 import './App.css';
 import '@fontsource/roboto';
 
-//
+// Important for routing and URL trickery
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 
-//
+// Adding my own theming and ofcourse layout
 import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
 import { Container, Hidden } from '@material-ui/core';
 
@@ -17,7 +17,7 @@ import FilesUpload from './components/FilesUpload.js';
 import FilesList from './components/FilesList.js';
 
 // This theme is to enforce black icons on mobile navigation
-const theme = createMuiTheme({ palette: { primary: { main: '#000' } } });
+const theme = createMuiTheme({ palette: { primary: { main: '#0023ff' } } });
 
 export default function App() {
   return (
@@ -29,10 +29,11 @@ export default function App() {
             </Hidden>
 
             {/* This is where all the pages will be rendered via react-router-dom */}
-            <Container style={{ marginTop: '20px' }}>
+            <Container style={{ marginTop: '20px', marginBottom: '60px' }}>
                 <Route exact path="/" component={Home} />
                 <Route exact path="/upload" component={FilesUpload} />
                 <Route exact path="/list" component={FilesList} />
+                <Route exact path="/list/search/:query" component={FilesList} />
             </Container>
 
             {/* This is used to hide mobile navigation on large devices*/}

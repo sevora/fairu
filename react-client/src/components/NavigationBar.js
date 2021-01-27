@@ -10,7 +10,7 @@ import { Link } from 'react-router-dom';
 import { makeStyles } from '@material-ui/core/styles';
 import { AppBar, Toolbar, Typography, Button } from '@material-ui/core';
 
-//
+// Styling made manually
 const useStyles = makeStyles(function(theme) {
     return {
         root: {
@@ -25,10 +25,11 @@ const useStyles = makeStyles(function(theme) {
     }
 });
 
-//
+// functional style of component
 export default function NavigationBar() {
     const classes = useStyles();
 
+    // always returns JSX
     return (
         <div className={classes.root}>
             {/* Style here is a hack to force black text and white background */}
