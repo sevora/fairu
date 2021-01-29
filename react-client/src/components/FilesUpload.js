@@ -6,9 +6,21 @@
  */
 import React, { Component } from 'react';
 import axios from 'axios';
+import { GoogleLogin, GoogleLogout } from 'react-google-login';
 
-import { Typography, Grid, TextField, FormControl, InputLabel, Select, MenuItem, Button } from '@material-ui/core';
+import { Alert } from '@material-ui/lab'
+import { Snackbar, Typography, Grid, TextField, FormControl, InputLabel, Select, MenuItem, Button, Hidden } from '@material-ui/core';
 import CloudUploadIcon from '@material-ui/icons/CloudUpload';
+
+/*
+const authorizationHeaders = () => {
+    const userData = JSON.parse(localStorage.getItem('userData'))
+
+    if (userData && userData.token) {
+        return { Authorization: 'Bearer ' + userData.token };
+    } 
+    return {};
+}*/
 
 /* 
  * Class Component 
@@ -26,6 +38,9 @@ export default class FilesUpload extends Component {
         this.onChangeFiletype = this.onChangeFiletype.bind(this);
         this.onChangeDownloadURLs = this.onChangeDownloadURLs.bind(this);
         this.onSubmit = this.onSubmit.bind(this);
+        this.onSuccessGoogle = this.onSuccessGoogle.bind(this);
+        this.onFailureGoogle = this.onFailureGoogle.bind(this);
+        this.onLogoutGoogle = this.onLogoutGoogle.bind(this);
 
         // Most of these properties are 
         // the form values.
@@ -36,6 +51,15 @@ export default class FilesUpload extends Component {
             filetype: '',
             downloadURLs: [''],
 
+            email: '',
+            username: '',
+            token: '',
+
+            isSuccess: false,
+            isError: false,
+
+            successMessage: '',
+            errorMessage: '',
             // Regular Expression for URL validation
             URLAddressRegEx: /[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)?/gi
         }
@@ -77,13 +101,25 @@ export default class FilesUpload extends Component {
 
     // triggers when submitting form
     onSubmit(event) {
+
         // prevents traditional form handling
         event.preventDefault();
+
+        // url validation as this is not handled normally by 
+        // required, maxlength, and other attributes
+        let allURLsValid = this.state.downloadURLs.slice(0).filter(url => url.length > 0).every(url => {
+            return RegExp(this.state.URLAddressRegEx.source, this.state.URLAddressRegEx.flags).test(url) 
+        });
+
+        if (!allURLsValid) {
+            this.setState({ isError: true, errorMessage: 'File URLs do not look like valid URLs!' })
+            return;
+        } 
 
         // These are all required fields, and are enforced automatically
         // by using the required attribute. 
         const file = {
-            filename: this.state.filename,
+            filename: this.state.filename.trim(),
             filetype: this.state.filetype,
             downloadURLs: this.state.downloadURLs.filter(url => url.length > 0)
         }
@@ -102,15 +138,61 @@ export default class FilesUpload extends Component {
         }
         
         // this is the part where the file is uploaded
-        axios.post('http://localhost:8000/files/add', file)
-            .then(function(response) {
+        let headers = this.state.token.length > 1 ? { Authorization: 'Bearer ' + this.state.token } : {};
+        axios.post(process.env.REACT_APP_API_URL + '/files/add', file, { headers })
+            .then(response => {
                 // a dialog must be implemented for either successful or unsuccessful
                 // form submission
-                console.log(response.data);
+                this.setState({ 
+                    isSuccess: true, 
+                    successMessage: response.data, 
+                    filename: '', 
+                    description: '', 
+                    tags: '', 
+                    filetype: '', 
+                    downloadURLs:[''] 
+                });
+
             })
-            .catch(function(error){
-                console.log(error)
+            .catch(error =>{
+                let message = error.response.data;
+                let capitalized = message.charAt(0).toUpperCase() + message.slice(1)
+                this.setState({ isError: true, errorMessage: capitalized });
             });
+    }
+
+    onSuccessGoogle(response) {
+        
+        axios.post(process.env.REACT_APP_API_URL + '/auth/google', { tokenId: response.tokenId })
+            .then(response => {
+                let { username, email } = response.data.data;
+                let { token } = response.data;
+                localStorage.setItem('userData', JSON.stringify({ username, email, token }));
+                this.setState({ username, email, token });
+            });
+    }
+
+    onFailureGoogle() {
+        this.setState({ isError: true, errorMessage: 'Google authorization attempt failed.'});
+    }
+
+    onLogoutGoogle() {
+        this.setState({ 
+            username: '',
+            email: '',
+            token: '',
+            isSuccess: true, 
+            successMessage: `Logged out of ${this.state.email}`
+        }, () => {
+            localStorage.clear();
+        });
+    }
+
+    componentDidMount() {
+        if (localStorage.getItem('userData') !== null) {
+            let userData = JSON.parse(localStorage.getItem('userData'));
+            this.setState({ username: userData.username, email: userData.email, token: userData.token });
+        }
     }
 
     // The messy looking render function mixed with HTML-like
@@ -118,6 +200,16 @@ export default class FilesUpload extends Component {
     render() {
         return(
             <form autoComplete="off" onSubmit={this.onSubmit}>
+                <Snackbar open={this.state.isError} onClose={() => this.setState({isError: false})} autoHideDuration={6000}>
+                       <Alert severity="error">
+                           { this.state.errorMessage }
+                       </Alert>
+                </Snackbar>
+                <Snackbar open={this.state.isSuccess} onClose={() => this.setState({isSuccess: false})} autoHideDuration={12000}>
+                       <Alert severity="success">
+                           { this.state.successMessage }
+                       </Alert>
+                </Snackbar>
                 <Grid container spacing={3} justify="center">
                     <Grid item xs={12} sm={9}>
                         <Typography variant="h5">
@@ -126,6 +218,7 @@ export default class FilesUpload extends Component {
                     </Grid>
                     <Grid item xs={12} sm={9}>
                         <TextField 
+                            value={this.state.filename}
                             required 
                             variant="outlined" 
                             fullWidth 
@@ -133,12 +226,13 @@ export default class FilesUpload extends Component {
                             label="Filename" 
                             placeholder="e.g. Grade 7 General-Science Quarter 1" 
                             InputLabelProps={{shrink:true}} 
-                            inputProps={{maxLength: 100}}
+                            inputProps={{maxLength: 256}}
                         >
                         </TextField>
                     </Grid>
                     <Grid item xs={12} sm={9}>
                         <TextField 
+                            value={this.state.description}
                             multiline 
                             variant="outlined" 
                             fullWidth 
@@ -146,12 +240,13 @@ export default class FilesUpload extends Component {
                             label="Description" 
                             placeholder="Type in a general overview of the contents..." 
                             InputLabelProps={{shrink:true}} 
-                            inputProps={{maxLength: 280}}
+                            inputProps={{maxLength: 400}}
                         >
                         </TextField>
                     </Grid>
                     <Grid item xs={12} sm={6}>
                         <TextField 
+                            value={this.state.tags}
                             multiline 
                             variant="outlined" 
                             fullWidth 
@@ -159,7 +254,7 @@ export default class FilesUpload extends Component {
                             label="Tags" 
                             placeholder="Comma-separated tags e.g. science, heat, energy" 
                             InputLabelProps={{shrink:true}} 
-                            inputProps={{maxLength: 200}}
+                            inputProps={{maxLength: 256}}
                         >
                         </TextField>
                     </Grid>
@@ -178,7 +273,7 @@ export default class FilesUpload extends Component {
                                 <MenuItem value="xlsx">.xlsx</MenuItem>
                                 <MenuItem value="odf">.odf</MenuItem>
                                 <MenuItem value="epub">.epub</MenuItem>
-                                <MenuItem value="epub">.zip</MenuItem>
+                                <MenuItem value="zip">.zip</MenuItem>
                                 <MenuItem value="others">Others</MenuItem>
                             </Select>
                         </FormControl>
@@ -192,9 +287,10 @@ export default class FilesUpload extends Component {
                         return <Grid item xs={12} sm={9} key={index}>
                                     <TextField 
                                         variant="outlined"
-                                        required={index == 0}
+                                        required={index === 0}
                                         fullWidth 
                                         error={ !RegExp(this.state.URLAddressRegEx.source, this.state.URLAddressRegEx.flags).test(this.state.downloadURLs[index]) && this.state.downloadURLs[index].length > 0} 
+                                        helperText={ (!RegExp(this.state.URLAddressRegEx.source, this.state.URLAddressRegEx.flags).test(this.state.downloadURLs[index]) && this.state.downloadURLs[index].length > 0) ? 'Invalid URL!' : ' '}
                                         onChange={this.onChangeDownloadURLs} 
                                         value={this.state.downloadURLs[index]} 
                                         label={index > 0 ? "Backup URL " + index : "Main URL"}  
@@ -205,13 +301,34 @@ export default class FilesUpload extends Component {
                                </Grid>
                     })}
                     <Grid container justify="flex-end" item xs={12} sm={9}>
+                        <Hidden xsUp={this.state.username.length > 0}>
+                            <GoogleLogin
+                                clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}
+                                buttonText={ this.state.username.length > 0 ? `LOGGED IN AS ${this.state.username.toUpperCase()}` : "LOGIN WITH GOOGLE" }
+                                onSuccess={this.onSuccessGoogle}
+                                onFailure={this.onFailureGoogle}
+                                cookiePolicy={'single_host_origin'}
+                                style={{width: '100%'}}
+                            />
+                        </Hidden>
+                        <Hidden xsUp={this.state.username.length <= 0}>
+                            <GoogleLogout
+                                clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}
+                                buttonText={`LOGOUT OF ${this.state.email.toUpperCase()}`}
+                                onLogoutSuccess={this.onLogoutGoogle}
+                            />
+                        </Hidden>
+                    </Grid>
+                    <Grid container justify="flex-end" item xs={12} sm={9}>
                         <Button 
                             type="submit" 
                             variant="contained" 
                             color="primary"
+                            size="medium"
+                            fullWidth
                             startIcon={<CloudUploadIcon />}
                         >
-                            Upload
+                            Upload to Fairu
                         </Button>
                     </Grid>
                 </Grid> 

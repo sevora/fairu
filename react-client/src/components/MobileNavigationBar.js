@@ -19,7 +19,7 @@ const useStyles = makeStyles({ root: { width: 500 } });
 // uses react's hook to keep its state
 export default function MobileNavigationBar() {
     const classes = useStyles();
-    const [value, setValue] = React.useState(window.location.pathname); // This highlights 'home' right away
+    const [value, setValue] = React.useState('/' + window.location.pathname.split('/').filter(x => x.length > 0)[0]); // This highlights 'home' right away
 
     // event handler for the current value of 
     // the highlighted part in mobile navigation
@@ -30,6 +30,7 @@ export default function MobileNavigationBar() {
     // always returns JSX
     return (
         // Styling here is used to position this on the bottom part always 
+        // value attribute dictates the highlighted element among the action children, with a children having the same value
         <BottomNavigation value={value} onChange={handleChange} showLabels className={classes.root} style={{ width: '100%', position: 'fixed', bottom: 0 }}>>
             <BottomNavigationAction label="Home" value="/" component={Link} to={'/'} icon={<HomeIcon />}/>
             <BottomNavigationAction label="Find" value="/list" component={Link} to={'/list'} icon={<ListIcon />}/>

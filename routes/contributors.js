@@ -3,9 +3,9 @@
  * not yet complete or fully implemented.
  */
 const router = require('express').Router();
-let Contributor = require('../models/contributor.js');
+const Contributor = require('../models/contributor.js');
 
-router.route('/').get(function(request, response) {
+router.get('/', function(request, response) {
     Contributor.find()
     .then(function(contributors) {
         response.json(contributors);
@@ -15,31 +15,17 @@ router.route('/').get(function(request, response) {
     });
 });
 
-router.route('/add').post(function(request, response) {
-    const username = request.body.username;
-    const contributor = new Contributor({ username });
-
-    contributor.save()
-    .then(function() {
-        response.json('New contributor added!');
-    })
-    .catch(function(error) {
-        response.status(400).json('Error: ' + error);
-    });
-});
-
-router.route('/update/:id').post(function(request, response) {
+router.post('/update/:id', function(request, response) {
     Contributor.findById(request.params.id)
-    .then(function(contributor) {
-        contributor.username = request.body.username;
+        .exec(contributor => {
+            if (error) return response.status(400).json('Error: ' + error);
 
-        contributor.save()
-        .then(function() { response.json('Contributor updated!') })
-        .catch(function(error) { response.status(400).json('Error: ' + error) });
+            if (request.body.username) contributor.username = request.body.username;
 
-    })
-    .catch(function(error) {
-        response.status(400).json('Error: ' + error);
+            contributor.save()
+            .then(function() { response.json('Contributor updated!') })
+            .catch(function(error) { response.status(400).json('Error: ' + error) });
+
     });
 });
 

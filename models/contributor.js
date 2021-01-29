@@ -5,6 +5,7 @@
  * and requirements.
  */
 const mongoose = require('mongoose');
+const uniqueValidator = require('mongoose-unique-validator')
 const Schema = mongoose.Schema;
 
 const contributorSchema = new Schema({
@@ -15,9 +16,17 @@ const contributorSchema = new Schema({
         type: String,
         required: true,
         unique: true,
+        uniqueCaseInsensitive: true,
         trim: true,
         minLength: 5,
         maxLength: 256
+    },
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+        uniqueCaseInsensitive: true,
+        trim: true
     },
     // default value is false, can only be set
     // by the superuser using special routes
@@ -30,8 +39,15 @@ const contributorSchema = new Schema({
     isSuperUser: {
         type: Boolean,
         default: false
+    },
+    // default value is false, if set to true, contributor
+    // will not be able to upload
+    isBanned: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 
+contributorSchema.plugin(uniqueValidator)
 const Contributor = mongoose.model('Contributor', contributorSchema, 'contributors');
 module.exports = Contributor;

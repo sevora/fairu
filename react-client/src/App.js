@@ -15,6 +15,7 @@ import NavigationBar from './components/NavigationBar.js';
 import MobileNavigationBar from './components/MobileNavigationBar.js'
 import FilesUpload from './components/FilesUpload.js';
 import FilesList from './components/FilesList.js';
+import FilesDetail from './components/FilesDetail.js';
 
 // This theme is to enforce black icons on mobile navigation
 const theme = createMuiTheme({ palette: { primary: { main: '#0023ff' } } });
@@ -32,8 +33,8 @@ export default function App() {
             <Container style={{ marginTop: '20px', marginBottom: '60px' }}>
                 <Route exact path="/" component={Home} />
                 <Route exact path="/upload" component={FilesUpload} />
-                <Route exact path="/list" component={FilesList} />
-                <Route exact path="/list/search/:query" component={FilesList} />
+                <Route exact path="/list" component={FilesList} /> 
+                <Route exact path="/list/details/:id" component={FilesDetail} /> 
             </Container>
 
             {/* This is used to hide mobile navigation on large devices*/}

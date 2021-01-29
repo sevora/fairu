@@ -5,6 +5,7 @@
  */
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 
 // dotenv to allow local .env files
@@ -18,7 +19,6 @@ const port = process.env.PORT || 8000;
 //
 app.use(cors());
 app.use(express.json());
-
 /*
  * Mongoose makes using MongoDB easier
  * adding schemas and other things
@@ -33,11 +33,13 @@ connection.once('open', function() {
 });
 
 // require all the routes here as router
-const contributorsRouter = require('./routes/contributors.js');
+//const contributorsRouter = require('./routes/contributors.js');
 const filesRouter = require('./routes/files.js');
+const authenticationRouter = require('./routes/authentication.js');
 
-app.use('/contributors', contributorsRouter);
+//app.use('/contributors', contributorsRouter);
 app.use('/files', filesRouter);
+app.use('/auth', authenticationRouter);
 
 app.listen(port, function() {
     console.log(`Server is running on port: ${port}`);
