@@ -1,6 +1,13 @@
 /* .App {
   text-align: center;
 } */
+a.nochangelink:active {
+  color: red !important;
+}
+
+a.nochangelink:visited {
+  color: #0023ff !important;
+}
 
 .App-container {
     margin: 10px;

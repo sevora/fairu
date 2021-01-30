@@ -5,11 +5,12 @@
  * source and is put in the priority list of the administrator boards.
  */
 import React, { Component } from 'react';
+import { withRouter } from 'react-router-dom';
 import axios from 'axios';
 import { GoogleLogin, GoogleLogout } from 'react-google-login';
 
 import { Alert } from '@material-ui/lab'
-import { Snackbar, Typography, Grid, TextField, FormControl, InputLabel, Select, MenuItem, Button, Hidden } from '@material-ui/core';
+import { Snackbar, Checkbox, Typography, Grid, TextField, FormControl, FormControlLabel, InputLabel, Select, MenuItem, Button, Hidden } from '@material-ui/core';
 import CloudUploadIcon from '@material-ui/icons/CloudUpload';
 
 /*
@@ -27,7 +28,7 @@ const authorizationHeaders = () => {
  * because there are several things
  * to keep track of here.
  */
-export default class FilesUpload extends Component {
+ class FilesUpload extends Component {
     constructor(props) {
         super(props);
 
@@ -55,11 +56,15 @@ export default class FilesUpload extends Component {
             username: '',
             token: '',
 
+            currentID: '',
+            isVerified: false,
+
             isSuccess: false,
             isError: false,
 
             successMessage: '',
             errorMessage: '',
+
             // Regular Expression for URL validation
             URLAddressRegEx: /[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)?/gi
         }
@@ -121,7 +126,8 @@ export default class FilesUpload extends Component {
         const file = {
             filename: this.state.filename.trim(),
             filetype: this.state.filetype,
-            downloadURLs: this.state.downloadURLs.filter(url => url.length > 0)
+            downloadURLs: this.state.downloadURLs.filter(url => url.length > 0),
+            verified: this.state.isVerified
         }
 
         // These fields are optional
@@ -139,30 +145,40 @@ export default class FilesUpload extends Component {
         
         // this is the part where the file is uploaded
         let headers = this.state.token.length > 1 ? { Authorization: 'Bearer ' + this.state.token } : {};
-        axios.post(process.env.REACT_APP_API_URL + '/files/add', file, { headers })
-            .then(response => {
-                // a dialog must be implemented for either successful or unsuccessful
-                // form submission
-                this.setState({ 
-                    isSuccess: true, 
-                    successMessage: response.data, 
-                    filename: '', 
-                    description: '', 
-                    tags: '', 
-                    filetype: '', 
-                    downloadURLs:[''] 
-                });
+        if (this.state.currentID.length === 0) {
+            axios.post(process.env.REACT_APP_API_URL + '/files/add', file, { headers })
+                .then(response => {
+                    // a dialog must be implemented for either successful or unsuccessful
+                    // form submission
+                    this.setState({ 
+                        isSuccess: true, 
+                        successMessage: response.data, 
+                        filename: '', 
+                        description: '', 
+                        tags: '', 
+                        filetype: '', 
+                        downloadURLs:[''] 
+                    });
 
-            })
-            .catch(error =>{
-                let message = error.response.data;
-                let capitalized = message.charAt(0).toUpperCase() + message.slice(1)
-                this.setState({ isError: true, errorMessage: capitalized });
-            });
+                })
+                .catch(error =>{
+                    let message = error.response.data;
+                    let capitalized = message.charAt(0).toUpperCase() + message.slice(1)
+                    this.setState({ isError: true, errorMessage: capitalized });
+                });
+        } else {
+            axios.post(process.env.REACT_APP_API_URL + '/files/update/' + this.state.currentID, file, { headers })
+                .then(response => {
+                    this.setState({ isSuccess: true, successMessage: 'Changes to the file have been saved.' })
+                })
+                .catch(error => {
+                    const message = error.response.data ? error.response.data : error;
+                    this.setState({ isError: true, errorMessage: message });
+                });
+        }
     }
 
-    onSuccessGoogle(response) {
-        
+    onSuccessGoogle(response) { 
         axios.post(process.env.REACT_APP_API_URL + '/auth/google', { tokenId: response.tokenId })
             .then(response => {
                 let { username, email } = response.data.data;
@@ -191,7 +207,32 @@ export default class FilesUpload extends Component {
     componentDidMount() {
         if (localStorage.getItem('userData') !== null) {
             let userData = JSON.parse(localStorage.getItem('userData'));
-            this.setState({ username: userData.username, email: userData.email, token: userData.token });
+            this.setState({ username: userData.username, email: userData.email, token: userData.token }, () => {
+                if (this.props.match.params.id) {
+                    let id = this.props.match.params.id;
+                    let headers = this.state.token.length > 1 ? { Authorization: 'Bearer ' + this.state.token } : {};  
+                    axios.get(process.env.REACT_APP_API_URL + '/contributors/role', { headers })
+                        .then(response => {
+                            if (response.data.isAdmin) {
+                                this.setState({ currentID: id }, () => {
+                                    axios.get(process.env.REACT_APP_API_URL + '/files/details/' + this.state.currentID)
+                                        .then(response => {
+                                            const { filename, description, filetype, tags, downloadURLs, verified } = response.data;
+                                            this.setState({ filename, description, filetype, tags: tags.join(', '), downloadURLs, isVerified: verified })
+                                        })
+                                        .catch(error => {
+                                            this.setState({ isError: true, errorMessage: 'Could not load file for editing.' });
+                                        });
+                                });
+                            } else {
+                                this.props.history.push({ pathname: '/list/details/' + id })
+                            }
+                        })
+                        .catch(error => {
+                                this.props.history.push({ pathname: '/list/details/' + id })
+                        });
+                }
+            });
         }
     }
 
@@ -300,6 +341,21 @@ export default class FilesUpload extends Component {
                                     </TextField>
                                </Grid>
                     })}
+                    <Hidden xsUp={this.state.currentID.length === 0}>
+                        <Grid item xs={12} sm={9}>
+                            <Typography variant="h6">Is the file verified?</Typography>
+                            <FormControlLabel
+                                style={{marginLeft: '0px'}}
+                                labelPlacement="start"
+                                label="The file is safe and reliable for academic purposes."
+                                control={<Checkbox 
+                                    color="primary" 
+                                    checked={this.state.isVerified} 
+                                    name="Verified" onChange={() => { this.setState({isVerified: !this.state.isVerified})}} 
+                                />}
+                            />
+                        </Grid>
+                    </Hidden>
                     <Grid container justify="flex-end" item xs={12} sm={9}>
                         <Hidden xsUp={this.state.username.length > 0}>
                             <GoogleLogin
@@ -319,7 +375,7 @@ export default class FilesUpload extends Component {
                             />
                         </Hidden>
                     </Grid>
-                    <Grid container justify="flex-end" item xs={12} sm={9}>
+                        <Grid container justify="flex-end" item xs={12} sm={9}>
                         <Button 
                             type="submit" 
                             variant="contained" 
@@ -328,7 +384,7 @@ export default class FilesUpload extends Component {
                             fullWidth
                             startIcon={<CloudUploadIcon />}
                         >
-                            Upload to Fairu
+                            { this.state.currentID.length > 0 ? 'Save Changes' : 'Upload to Fairu' }
                         </Button>
                     </Grid>
                 </Grid> 
@@ -336,3 +392,5 @@ export default class FilesUpload extends Component {
         )
     }
 }
+
+export default withRouter(FilesUpload);

@@ -64,6 +64,9 @@ const fileSchema = new Schema({
     verified: {
         type: Boolean,
         default: false
+    },
+    verifiedBy: {
+        type: String
     }
 }, { timestamps: true });
 

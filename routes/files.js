@@ -7,7 +7,7 @@ const File = require('../models/file.js');
 const Contributor = require('../models/contributor.js');
 const authenticationMiddleware = require('./authentication-middleware.js');
 
-const perPageCount = 5; // objects per page
+const perPageCount = 50; // objects per page
 
 // GET '/' gives JSON object which returns 
 // an array files sorted by their date of creation, newest to oldest,
@@ -139,8 +139,8 @@ router.get('/details/:id', function(request, response) {
             if (error) return response.status(400).json('Please provide a valid ID.');
             response.json(file);
         });
-        
-})
+
+});
 
 // POST '/add' with the body of headers having
 // filename: String,
@@ -184,8 +184,43 @@ router.post('/add', authenticationMiddleware, function(request, response) {
         });
 });
 
+router.post('/update/:id', authenticationMiddleware, function(request, response) {
+    if (request.userData.expired) return response.status(400).json('Google authentication has expired. Please log-in again.');
+    if (request.userData.error) return response.status(400).json('Google authentication is required.')
+    if (!request.params || !request.params.id) return response.status(400).json('Please provide an ID.')
+
+    Contributor
+        .findById(request.userData.id)
+        .exec((error, contributor) => {
+            if (error) return response.status(400).json(error);
+            if (!(contributor.isAdmin || contributor.isSuperUser)) return response.status(400).json('Authority does not permit the call.');
+
+            File
+                .findById(request.params.id)
+                .exec((error, file) => {
+                    if (error) return response.status(400).json(error);
+                    let { filename, description, tags, filetype, downloadURLs, verified } = request.body;
+                    if (filename) file.filename = request.body.filename;
+                    if (description) file.description = request.body.description;
+                    if (tags) file.tags = tags;
+                    if (filetype) file.filetype = filetype;
+                    if (downloadURLs) file.downloadURLs = downloadURLs;
+                    if (verified) {
+                        file.verified = true;
+                        file.verifiedBy = contributor._id;
+                    }
+                    file.save()
+                        .then(function() { response.json('File successfully updated.') })
+                        .catch(function() {
+                            response.status(400).json(error.toString().replace('ValidationError: ', '').split(',').map(message => message.split(': ')[1])[0]);
+                        });
+                });
+        });
+});
+
 // POST '/update/:id' where id is a URL parameter of ObjectId
-// from MongoDB itself
+// from MongoDB itsel
+/*
 router.post('/update/:id', function(request, response) {
     File.findById(request.params.id)
         .exec((error, file) => {
@@ -210,5 +245,5 @@ router.post('/update/:id', function(request, response) {
             .catch(function(error) { response.status(400).json(error) });
         });
 });
-
+*/
 module.exports = router;

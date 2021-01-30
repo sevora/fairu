@@ -33,13 +33,13 @@ connection.once('open', function() {
 });
 
 // require all the routes here as router
-//const contributorsRouter = require('./routes/contributors.js');
-const filesRouter = require('./routes/files.js');
 const authenticationRouter = require('./routes/authentication.js');
+const filesRouter = require('./routes/files.js');
+const contributorsRouter = require('./routes/contributors.js');
 
-//app.use('/contributors', contributorsRouter);
-app.use('/files', filesRouter);
 app.use('/auth', authenticationRouter);
+app.use('/files', filesRouter);
+app.use('/contributors', contributorsRouter);
 
 app.listen(port, function() {
     console.log(`Server is running on port: ${port}`);

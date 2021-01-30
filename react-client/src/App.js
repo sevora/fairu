@@ -12,10 +12,11 @@ import { Container, Hidden } from '@material-ui/core';
 // All components written for this project
 import Home from './components/Home.js'
 import NavigationBar from './components/NavigationBar.js';
-import MobileNavigationBar from './components/MobileNavigationBar.js'
+import MobileNavigationBar from './components/MobileNavigationBar.js';
 import FilesUpload from './components/FilesUpload.js';
 import FilesList from './components/FilesList.js';
 import FilesDetail from './components/FilesDetail.js';
+import AdministratorBoard from './components/AdministratorBoard.js';
 
 // This theme is to enforce black icons on mobile navigation
 const theme = createMuiTheme({ palette: { primary: { main: '#0023ff' } } });
@@ -35,6 +36,8 @@ export default function App() {
                 <Route exact path="/upload" component={FilesUpload} />
                 <Route exact path="/list" component={FilesList} /> 
                 <Route exact path="/list/details/:id" component={FilesDetail} /> 
+                <Route exact path="/list/edit/:id" component={FilesUpload} />
+                <Route exact path="/admin" component={AdministratorBoard} />
             </Container>
 
             {/* This is used to hide mobile navigation on large devices*/}
