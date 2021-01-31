@@ -30,6 +30,8 @@ export default function MuiDataGrid(props) {
                 onPageChange={props.onPageChange}
                 rowsPerPageOptions={props.rowsPerPageOptions}
                 pageSize={props.pageSize} 
+                onSelectionChange={props.onSelectionChange ? props.onSelectionChange : () => {}}
+                checkboxSelection={props.checkboxSelection ? props.checkboxSelection : false}
             />
         </div>
     );

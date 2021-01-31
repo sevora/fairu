@@ -6,7 +6,7 @@ const router = require('express').Router();
 const Contributor = require('../models/contributor.js');
 const authenticationMiddleware = require('./authentication-middleware.js');
 
-const perPageCount = 50;
+const perPageCount = 20;
 
 router.get('/', authenticationMiddleware, function(request, response) {
     if (request.userData.error) return response.status(400).json('Unauthorized API call.');

@@ -3,11 +3,13 @@
  * implemented here
  */
 const router = require('express').Router();
+const ObjectId = require('mongoose').Types.ObjectId
+
 const File = require('../models/file.js');
 const Contributor = require('../models/contributor.js');
 const authenticationMiddleware = require('./authentication-middleware.js');
 
-const perPageCount = 50; // objects per page
+const perPageCount = 20; // objects per page
 
 // GET '/' gives JSON object which returns 
 // an array files sorted by their date of creation, newest to oldest,
@@ -35,6 +37,21 @@ router.get('/', function(request, response) {
         .exec((error, files) => {
             if (error) return response.status(400).json(error);
             response.json(files);
+        });
+});
+
+router.get('/count', function(request, response) {
+    // whether to count unverified documents
+    let unverified = false;
+
+    if (request.query.unverified) {
+        unverified = request.query.unverified.toLowerCase() === 'true';
+    }
+
+    File.countDocuments(unverified ? {} : { verified: true })
+        .exec((error, count) => {
+            if (error) return response.status(400).json(error);
+            response.json(count);
         });
 });
 
@@ -130,19 +147,52 @@ router.get('/search/pagecount', function(request, response) {
 // GET '/:id' should be defined last for it to be applied last.
 // If that is not done will prevent the other routes from working
 // as they will be considered this route.
-router.get('/details/:id', function(request, response) {
+router.get('/details/:id', authenticationMiddleware, function(request, response) {
     if (!request.params || !request.params.id) return response.status(400).json('Please provide an ID.')
 
     File.findById(request.params.id)
-        .select('-uploaderID')
+        // .select('-uploaderID -verifiedBy')
         .exec((error, file) => {
-            if (error) return response.status(400).json('Please provide a valid ID.');
-            response.json(file);
+            if (error) return response.status(400).json(error);
+
+            let uploaderID = file.uploaderID;
+            let verifiedBy = file.verifiedBy;
+
+            let fileDetails = {
+                filename: file.filename,
+                description: file.description ? file.description : '',
+                tags: file.tags ? file.tags : [''],
+                filetype: file.filetype,
+                verified: file.verified,
+                downloadURLs: file.downloadURLs
+            }
+
+            if (request.userData.error) return response.json(fileDetails);
+ 
+            Contributor.findById(request.userData.id)
+                .exec((error, contributor) => {
+                    if (error) return response.json(file);
+                    if (!(contributor.isAdmin || contributor.isSuperUser)) return response.json(fileDetails);
+
+                    Contributor.findById(uploaderID)
+                        .exec((error, uploader) => {
+                            if (error) return response.json(fileDetails);
+                            fileDetails.uploaderEmail = uploader.email;  
+
+                            Contributor.findById(verifiedBy)
+                                .exec((error, verifier) => { 
+                                    if (error) return response.json(fileDetails);
+                                    fileDetails.verifierEmail = verifier ?  verifier.email : '';
+                                    return response.json(fileDetails);
+                                });
+                        });
+                });
         });
 
 });
 
 // POST '/add' with the body of headers having
+
 // filename: String,
 // filetype: String
 // downloadURLs: (Array) String,
@@ -164,7 +214,6 @@ router.post('/add', authenticationMiddleware, function(request, response) {
                 filetype: request.body.filetype,
                 downloadURLs: request.body.downloadURLs,
                 uploaderID: request.userData.id
-                // not yet properly implemented
             });
 
             // optional body values
@@ -194,7 +243,8 @@ router.post('/update/:id', authenticationMiddleware, function(request, response)
         .exec((error, contributor) => {
             if (error) return response.status(400).json(error);
             if (!(contributor.isAdmin || contributor.isSuperUser)) return response.status(400).json('Authority does not permit the call.');
-
+            if (contributor.isBanned) return response.status(400).json('You have been banned.');
+                
             File
                 .findById(request.params.id)
                 .exec((error, file) => {
@@ -205,9 +255,11 @@ router.post('/update/:id', authenticationMiddleware, function(request, response)
                     if (tags) file.tags = tags;
                     if (filetype) file.filetype = filetype;
                     if (downloadURLs) file.downloadURLs = downloadURLs;
-                    if (verified) {
-                        file.verified = true;
-                        file.verifiedBy = contributor._id;
+                    if (verified === true || verified === false) {
+                        file.verified = verified;
+                        if (verified) {
+                            file.verifiedBy = contributor._id;
+                        }
                     }
                     file.save()
                         .then(function() { response.json('File successfully updated.') })
@@ -218,6 +270,27 @@ router.post('/update/:id', authenticationMiddleware, function(request, response)
         });
 });
 
+router.delete('/delete', authenticationMiddleware, function(request, response) {
+    if (request.userData.error) return response.status(400).json('Unauthorized API call.');
+
+    Contributor.findById(request.userData.id)
+        .exec((error, contributor) => {
+            if (error) return response.status(400).json(error);
+            if (!contributor.isSuperUser) return response.status(400).json('Unauthorized action.')
+            if (!request.body || request.body.ids.length == 0) return response.status(400).json('Please provide proper body.');
+
+            let ids;
+            try {
+                ids = request.body.ids.map(id => ObjectId(id));
+            } catch(error) {
+                return response.status(400).json(error);
+            }
+            if (ids.length > 0) File.deleteMany({ _id: { $in: ids }}, (error, result) => {
+                if (error) return response.status(400).json(error);
+                response.json(result);
+            });
+        })
+});
 // POST '/update/:id' where id is a URL parameter of ObjectId
 // from MongoDB itsel
 /*

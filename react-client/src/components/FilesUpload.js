@@ -57,6 +57,8 @@ const authorizationHeaders = () => {
             token: '',
 
             currentID: '',
+            uploadedBy: '',
+            verifiedBy: '',
             isVerified: false,
 
             isSuccess: false,
@@ -64,6 +66,8 @@ const authorizationHeaders = () => {
 
             successMessage: '',
             errorMessage: '',
+
+            formDisabled: false,
 
             // Regular Expression for URL validation
             URLAddressRegEx: /[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)?/gi
@@ -152,24 +156,41 @@ const authorizationHeaders = () => {
                     // form submission
                     this.setState({ 
                         isSuccess: true, 
-                        successMessage: response.data, 
+                        successMessage: 'Your file has been successfully sent to the admins for verification! Wait for a few seconds before submitting again.', 
+                        formDisabled: true,
                         filename: '', 
                         description: '', 
                         tags: '', 
                         filetype: '', 
                         downloadURLs:[''] 
+                    }, () => {
+                        setTimeout(() => {
+                            this.setState({ formDisabled: false });
+                        }, 6000);
                     });
 
                 })
                 .catch(error =>{
-                    let message = error.response.data;
+                    let message = error.response.data.toString();
                     let capitalized = message.charAt(0).toUpperCase() + message.slice(1)
-                    this.setState({ isError: true, errorMessage: capitalized });
+                    this.setState({ isError: true, errorMessage: capitalized, formDisabled: true }, () => {
+                        setTimeout(() => {
+                            this.setState({ formDisabled: false });
+                        }, 1000);
+                    });
                 });
         } else {
             axios.post(process.env.REACT_APP_API_URL + '/files/update/' + this.state.currentID, file, { headers })
                 .then(response => {
-                    this.setState({ isSuccess: true, successMessage: 'Changes to the file have been saved.' })
+                    this.setState({ 
+                        isSuccess: true, 
+                        successMessage: 'Changes to the file have been saved.' 
+                    }, () => {
+                        setTimeout(() => {
+                            this.props.history.go(0)
+                        }, 2000);
+                    });
+
                 })
                 .catch(error => {
                     const message = error.response.data ? error.response.data : error;
@@ -210,15 +231,24 @@ const authorizationHeaders = () => {
             this.setState({ username: userData.username, email: userData.email, token: userData.token }, () => {
                 if (this.props.match.params.id) {
                     let id = this.props.match.params.id;
-                    let headers = this.state.token.length > 1 ? { Authorization: 'Bearer ' + this.state.token } : {};  
+                    let headers = this.state.token.length > 1 ? { Authorization: 'Bearer ' + this.state.token } : {}; 
                     axios.get(process.env.REACT_APP_API_URL + '/contributors/role', { headers })
                         .then(response => {
                             if (response.data.isAdmin) {
                                 this.setState({ currentID: id }, () => {
-                                    axios.get(process.env.REACT_APP_API_URL + '/files/details/' + this.state.currentID)
+                                    axios.get(process.env.REACT_APP_API_URL + '/files/details/' + this.state.currentID, { headers})
                                         .then(response => {
-                                            const { filename, description, filetype, tags, downloadURLs, verified } = response.data;
-                                            this.setState({ filename, description, filetype, tags: tags.join(', '), downloadURLs, isVerified: verified })
+                                            const { filename, description, filetype, tags, downloadURLs, verified, uploaderEmail, verifierEmail } = response.data;
+                                            this.setState({ 
+                                                filename, 
+                                                description,
+                                                tags: tags.join(', '),
+                                                filetype, 
+                                                downloadURLs, 
+                                                isVerified: verified,
+                                                uploadedBy: uploaderEmail,
+                                                verifiedBy: verifierEmail ? verifierEmail : ''
+                                            });
                                         })
                                         .catch(error => {
                                             this.setState({ isError: true, errorMessage: 'Could not load file for editing.' });
@@ -232,8 +262,12 @@ const authorizationHeaders = () => {
                                 this.props.history.push({ pathname: '/list/details/' + id })
                         });
                 }
+
             });
+        } else if (this.props.match.params.id) {
+            this.props.history.push({ pathname: '/list/details/' + this.props.match.params.id })
         }
+
     }
 
     // The messy looking render function mixed with HTML-like
@@ -254,11 +288,23 @@ const authorizationHeaders = () => {
                 <Grid container spacing={3} justify="center">
                     <Grid item xs={12} sm={9}>
                         <Typography variant="h5">
-                            Become a Contributor
+                            { this.state.currentID.length > 0 ? 'Uploaded by ' + this.state.uploadedBy : 'Become a Contributor' }
+                        </Typography>
+                        <Typography variant="h6" color="primary">
+                            {(function(){
+                                if (this.state.currentID.length > 0) {
+                                    if (this.state.verifiedBy.length > 0) {
+                                        return 'Last verified by ' + this.state.verifiedBy
+                                    }
+                                    return 'No verification'
+                                }
+                                return ''
+                            }.bind(this))()}
                         </Typography>
                     </Grid>
                     <Grid item xs={12} sm={9}>
                         <TextField 
+                            disabled={this.state.formDisabled}
                             value={this.state.filename}
                             required 
                             variant="outlined" 
@@ -274,6 +320,7 @@ const authorizationHeaders = () => {
                     <Grid item xs={12} sm={9}>
                         <TextField 
                             value={this.state.description}
+                            disabled={this.state.formDisabled}
                             multiline 
                             variant="outlined" 
                             fullWidth 
@@ -288,6 +335,7 @@ const authorizationHeaders = () => {
                     <Grid item xs={12} sm={6}>
                         <TextField 
                             value={this.state.tags}
+                            disabled={this.state.formDisabled}
                             multiline 
                             variant="outlined" 
                             fullWidth 
@@ -300,7 +348,7 @@ const authorizationHeaders = () => {
                         </TextField>
                     </Grid>
                     <Grid item xs={12} sm={3}>
-                        <FormControl variant="outlined" required fullWidth>
+                        <FormControl variant="outlined" required fullWidth disabled={this.state.formDisabled}>
                             <InputLabel id="select-filetype-label">Filetype</InputLabel>
                             <Select
                                 onChange={this.onChangeFiletype} 
@@ -328,6 +376,7 @@ const authorizationHeaders = () => {
                         return <Grid item xs={12} sm={9} key={index}>
                                     <TextField 
                                         variant="outlined"
+                                        disabled={this.state.formDisabled}
                                         required={index === 0}
                                         fullWidth 
                                         error={ !RegExp(this.state.URLAddressRegEx.source, this.state.URLAddressRegEx.flags).test(this.state.downloadURLs[index]) && this.state.downloadURLs[index].length > 0} 
@@ -377,6 +426,7 @@ const authorizationHeaders = () => {
                     </Grid>
                         <Grid container justify="flex-end" item xs={12} sm={9}>
                         <Button 
+                            disabled={this.state.formDisabled}
                             type="submit" 
                             variant="contained" 
                             color="primary"

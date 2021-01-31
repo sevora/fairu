@@ -109,7 +109,7 @@ class FilesDetail extends Component {
                                 </AccordionDetails>
                             </Accordion>
  
-                            <Accordion>
+                            <Accordion expanded={true}>
                                 <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
                                     <Typography className={classes.accordionHeading}>Description</Typography>
                                     <Typography className={classes.accordionSubheading}>A quick overview of the contents of the file.</Typography>
@@ -120,7 +120,7 @@ class FilesDetail extends Component {
                                     </Box>
                                 </AccordionDetails>
                             </Accordion>
-                            <Accordion>
+                            <Accordion expanded={true}>
                                 <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
                                     <Typography className={classes.accordionHeading}>Tags</Typography>
                                     <Typography className={classes.accordionSubheading}>

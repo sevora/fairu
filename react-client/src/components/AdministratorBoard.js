@@ -2,9 +2,11 @@ import React, { Component } from 'react';
 import { Link, withRouter } from 'react-router-dom';
 import axios from 'axios';
 
-import { Grid, Typography, Snackbar, Box } from '@material-ui/core';
+import { Grid, Typography, Snackbar, Box, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
 import MuiDataGrid from './GridWrapper.js';
+
+import DeleteIcon from '@material-ui/icons/Delete';
 
 class AdministratorBoard extends Component {
 
@@ -13,6 +15,10 @@ class AdministratorBoard extends Component {
 
         this.getContributors = this.getContributors.bind(this);
         this.onContributorsPageChange = this.onContributorsPageChange.bind(this);
+        this.getFiles = this.getFiles.bind(this);
+        this.onFilesPageChange = this.onFilesPageChange.bind(this);
+        this.onFilesSelection = this.onFilesSelection.bind(this);
+        this.onDeleteSelectedFiles = this.onDeleteSelectedFiles.bind(this);
 
         this.state = {
             username: '',
@@ -76,6 +82,8 @@ class AdministratorBoard extends Component {
             filesRows: [],
             filesRowsCount: 0,
             filesPageIndex: 0,
+            filesSelectedIndices: [],
+            filesDeleteDialogOpen: false,
 
             isError: false,
             isSuccess: false,
@@ -113,18 +121,55 @@ class AdministratorBoard extends Component {
         });
     }
 
+
     getFiles() {
-        axios.get(process.env.REACT_APP_API_URL + '/files', { params: { unverified: true } })
+        axios.get(process.env.REACT_APP_API_URL + '/files/count', { params: { unverified: true } })
             .then(response => {
-                let rows = response.data.map((data, index) => {
-                    data.id = index;
-                    data.filetype = '.' + data.filetype;
-                    data.verified = data.verified ? 'Verified' : 'Not Verified';
-                    data.edit = 'Edit file';
-                    return data;
+                let rowsCount = response.data;
+                axios.get(process.env.REACT_APP_API_URL + '/files', { params: { unverified: true, page: this.state.filesPageIndex } })
+                    .then(response => {
+                        let rows = response.data.map((data, index) => {
+                            data.id = index;
+                            data.filetype = '.' + data.filetype;
+                            data.verified = data.verified ? 'Verified' : 'Not Verified';
+                            data.edit = 'Edit file';
+                            return data;
+                        });
+                        this.setState({ filesRows: rows, filesRowsCount: rowsCount });
+                    });
+
+            });
+    }
+
+    onFilesPageChange(params) {
+        this.setState({ filesPageIndex: params.page - 1}, () => {
+            this.getFiles();
+        })
+    }
+
+    onFilesSelection(selection) {
+        console.log(selection.rowIds)
+        this.setState({ filesSelectedIndices: selection.rowIds });
+    }
+
+    onDeleteSelectedFiles() {
+        let headers = this.state.token.length > 1 ? { Authorization: 'Bearer ' + this.state.token } : {};
+        let ids = this.state.filesSelectedIndices.map((index) => {
+            return this.state.filesRows[index]._id;
+        });
+        
+        axios.delete(process.env.REACT_APP_API_URL + '/files/delete/', { headers, data: { ids } })
+            .then(response => {
+                console.log(response);
+                this.setState({ filesDeleteDialogOpen: false, isSuccess: true, successMessage: 'Successfully deleted files.', filesSelectedIndices: [], filesRows: [], filesRowsCount: 0 }, () => {
+                    this.getFiles();
                 });
-                this.setState({ filesRows: rows });
             })
+            .catch(error => {
+                console.log(error);
+                this.setState({ isError: true, errorMessage: error.toString() });
+            });
+
     }
 
     componentDidMount() {
@@ -155,9 +200,14 @@ class AdministratorBoard extends Component {
                 </Snackbar>
                 <Grid container justify="center">
                     <Grid item xs={12} sm={9}>
-                        <Typography>
-                            Logged in as {this.state.username} ({this.state.email})
-                        </Typography>
+                        <Box mb={2}>
+                            <Typography variant="h5">
+                                Logged in as {this.state.username} 
+                            </Typography>
+                            <Typography variant="h6" color="primary">
+                                {this.state.email}
+                            </Typography>
+                        </Box>
                     </Grid>
                     <Grid item xs={12} sm={9}>
                         <Typography variant="h5">
@@ -181,8 +231,8 @@ class AdministratorBoard extends Component {
                             columns={this.state.contributorsColumns}
                             rowCount={this.state.contributorsRowsCount}
                             onPageChange={this.onContributorsPageChange}
-                            rowsPerPageOptions={[50]}
-                            pageSize={50} /* set this to the same amount as perPageCount server-side */
+                            rowsPerPageOptions={[20]}
+                            pageSize={20} /* set this to the same amount as perPageCount server-side */
                         />
                     </Grid>
                     <Grid item xs={12} sm={9}>
@@ -196,11 +246,43 @@ class AdministratorBoard extends Component {
                             columns={this.state.filesColumns}
                             rowCount={this.state.filesRowsCount}
                             onPageChange={this.onFilesPageChange}
-                            rowsPerPageOptions={[50]}
-                            pageSize={50} /* set this to the same amount as perPageCount server-side */
+                            rowsPerPageOptions={[20]}
+                            checkboxSelection={true}
+                            onSelectionChange={this.onFilesSelection}
+                            pageSize={20} /* set this to the same amount as perPageCount server-side */
                         />
                     </Grid>
+                    <Grid item xs={12} sm={9}>
+                        <Button 
+                            fullWidth
+                            type="submit" 
+                            variant="contained" 
+                            color="secondary"
+                            size="medium"
+                            onClick={() => { this.setState({ filesDeleteDialogOpen: true }) }}
+                            disabled={this.state.filesSelectedIndices.length===0}
+                            startIcon={<DeleteIcon />}
+                        >Delete Selected</Button>
+                    </Grid>
                 </Grid>
+                <Dialog open={this.state.filesDeleteDialogOpen} onClose={() => this.setState({ filesDeleteDialogOpen: false })}>
+                    <DialogTitle>Warning!</DialogTitle>
+                    <DialogContent>
+                        <DialogContentText>
+                            Attempting to delete {this.state.filesSelectedIndices.length} file{this.state.filesSelectedIndices.length > 1 ? 's' : ''}. This
+                            action is irreversible and only special administrators are authorized to do so.
+                        </DialogContentText>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => { this.setState({ filesDeleteDialogOpen: false }) }} color="default">
+                            Cancel
+                        </Button>
+                        <Button onClick={this.onDeleteSelectedFiles} color="secondary">
+                            Permanently Delete
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
             </div>
         )
     }
