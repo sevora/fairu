@@ -7,6 +7,7 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
+const helmet = require('helmet');
 
 // dotenv to allow local .env files
 require('dotenv').config();
@@ -19,6 +20,7 @@ const port = process.env.PORT || 8000;
 //
 app.use(cors());
 app.use(express.json());
+app.use(helmet());
 /*
  * Mongoose makes using MongoDB easier
  * adding schemas and other things

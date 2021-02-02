@@ -40,6 +40,7 @@ class FilesDetail extends Component {
             tags: [''],
             filetype: '',
             downloadURLs: [''],
+            fixedDownloadURLs: [''],
             verified: false,
 
             dialogOpen: false,
@@ -49,21 +50,26 @@ class FilesDetail extends Component {
 
     onClickDownload(index) {
         if (this.state.verified) {
-            const newWindow = window.open(this.state.downloadURLs[index], '_blank', 'noopener,noreferrer')
+            const newWindow = window.open(this.state.fixedDownloadURLs[index], '_blank', 'noopener,noreferrer')
             if (newWindow) newWindow.opener = null
         } else {
-            this.setState({ currentLink: this.state.downloadURLs[index], dialogOpen: true });
+            this.setState({ currentLink: this.state.fixedDownloadURLs[index], dialogOpen: true });
         }
     }
 
     componentDidMount() {
         axios.get(process.env.REACT_APP_API_URL + '/files/details/' + this.props.match.params.id)
             .then(response => {
-                const { filename, description, tags, filetype, downloadURLs, verified } = response.data; 
+                let { filename, description, tags, filetype, downloadURLs, verified } = response.data; 
+                let fixedDownloadURLs = downloadURLs.map((url,index) => { 
+                    return `${process.env.REACT_APP_API_URL}/files/download/${this.props.match.params.id}/${index}`;
+                });
+//                console.log(fixedURLs);
                 this.setState({ 
                     filename, 
                     filetype,
                     downloadURLs,
+                    fixedDownloadURLs,
                     verified,
                     description: description ? description : '',
                     tags: tags ? tags : ['']

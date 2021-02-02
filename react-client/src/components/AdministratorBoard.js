@@ -77,7 +77,8 @@ class AdministratorBoard extends Component {
                     renderCell: (params) => {
                         return(<Link className={'nochangelink'} to={'/list/edit/' + params.getValue('_id')}>Edit File</Link>)
                     }
-                }
+                },
+                { field: 'downloads', headerName: 'Downloads', flex: 1 }
             ],
             filesRows: [],
             filesRowsCount: 0,
@@ -133,6 +134,7 @@ class AdministratorBoard extends Component {
                             data.filetype = '.' + data.filetype;
                             data.verified = data.verified ? 'Verified' : 'Not Verified';
                             data.edit = 'Edit file';
+                            data.downloads = data.downloads ? data.downloads : 0;
                             return data;
                         });
                         this.setState({ filesRows: rows, filesRowsCount: rowsCount });
@@ -166,8 +168,8 @@ class AdministratorBoard extends Component {
                 });
             })
             .catch(error => {
-                console.log(error);
-                this.setState({ isError: true, errorMessage: error.toString() });
+                let message = error.response ? error.response.data : error.toString();
+                this.setState({ isError: true, errorMessage: message });
             });
 
     }

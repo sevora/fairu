@@ -36,6 +36,7 @@ router.get('/', function(request, response) {
         .skip(perPageCount * page)
         .exec((error, files) => {
             if (error) return response.status(400).json(error);
+            if (!files) response.json([]);
             response.json(files);
         });
 });
@@ -109,7 +110,7 @@ router.get('/search', function(request, response) {
         .skip(perPageCount * page)
         .exec((error, files) => {
             // JSON file is served back if successful
-            if (error) return response.status(400).json(error);        
+            if (error || !files) return response.status(400).json(error);
             response.json(files);
         });
 
@@ -153,7 +154,7 @@ router.get('/details/:id', authenticationMiddleware, function(request, response)
     File.findById(request.params.id)
         // .select('-uploaderID -verifiedBy')
         .exec((error, file) => {
-            if (error) return response.status(400).json(error);
+            if (error || !file) return response.status(400).json('No such file.');
 
             let uploaderID = file.uploaderID;
             let verifiedBy = file.verifiedBy;
@@ -171,7 +172,7 @@ router.get('/details/:id', authenticationMiddleware, function(request, response)
  
             Contributor.findById(request.userData.id)
                 .exec((error, contributor) => {
-                    if (error) return response.json(file);
+                    if (error) return response.json(fileDetails);
                     if (!(contributor.isAdmin || contributor.isSuperUser)) return response.json(fileDetails);
 
                     Contributor.findById(uploaderID)
@@ -191,6 +192,38 @@ router.get('/details/:id', authenticationMiddleware, function(request, response)
 
 });
 
+router.get('/download/:id/:index', function(request, response) {
+    if (!request.params || !request.params.id || !request.params.index) return response.status(400).json('Invalid API Call.')
+
+    File.findById(request.params.id)
+        .exec((error, file) => {
+            // error if String cannot be casted to ObjectId
+            // file === null if it is an ObjectId but it does not exist
+            if (error || !file) return response.status(400).json();
+
+            let { index } = request.params;
+            console.log(file);
+
+            if (index >= 0 && index < file.downloadURLs.length) {
+                if (file.downloads) {
+                    file.downloads += 1;
+                } else {
+                    file.downloads = 1;
+                }
+                file.save()
+                    .then(function() { 
+                        response.status(301).redirect(file.downloadURLs[index]);
+                    })
+                    .catch(function(error) {
+                        console.log(error);
+                        response.status(400).json('Error resource call');
+                    });
+            } else {
+                response.status(400).json('Invalid API Call.');
+            }
+        });
+});
+
 // POST '/add' with the body of headers having
 
 // filename: String,
@@ -206,7 +239,7 @@ router.post('/add', authenticationMiddleware, function(request, response) {
 
     Contributor.findById(request.userData.id)
         .exec((error, contributor) => {
-
+            if (!contributor) return response.status(400).json('Contributor does not exist.');
             if (contributor.isBanned) return response.status(400).json('This account has been banned.')
             // File object is a Schema object from models directory
             const file = new File({
@@ -241,14 +274,14 @@ router.post('/update/:id', authenticationMiddleware, function(request, response)
     Contributor
         .findById(request.userData.id)
         .exec((error, contributor) => {
-            if (error) return response.status(400).json(error);
+            if (error || !contributor) return response.status(400).json('User ID is invalid.');
             if (!(contributor.isAdmin || contributor.isSuperUser)) return response.status(400).json('Authority does not permit the call.');
             if (contributor.isBanned) return response.status(400).json('You have been banned.');
                 
             File
                 .findById(request.params.id)
                 .exec((error, file) => {
-                    if (error) return response.status(400).json(error);
+                    if (error || !file) return response.status(400).json('File does not exist.');
                     let { filename, description, tags, filetype, downloadURLs, verified } = request.body;
                     if (filename) file.filename = request.body.filename;
                     if (description) file.description = request.body.description;
@@ -275,8 +308,8 @@ router.delete('/delete', authenticationMiddleware, function(request, response) {
 
     Contributor.findById(request.userData.id)
         .exec((error, contributor) => {
-            if (error) return response.status(400).json(error);
-            if (!contributor.isSuperUser) return response.status(400).json('Unauthorized action.')
+            if (error || !contributor) return response.status(400).json('Unauthorized API call.');
+            if (!contributor.isSuperUser) return response.status(400).json('Unauthorized API call.')
             if (!request.body || request.body.ids.length == 0) return response.status(400).json('Please provide proper body.');
 
             let ids;

@@ -20,7 +20,7 @@ router.get('/', authenticationMiddleware, function(request, response) {
 
     Contributor.findById(request.userData.id)
         .exec((error, contributor) => {
-            if (error) return response.status(400).json(error);
+            if (error || !contributor) return response.status(400).json('Unauthorized API call.');
             if (!(contributor.isAdmin || contributor.isSuperUser)) return response.status(400).json('Unauthorized API call.');
 
             Contributor
@@ -43,7 +43,7 @@ router.get('/count', authenticationMiddleware, function(request, response) {
     Contributor
         .findById(request.userData.id)
         .exec((error, contributor) => {
-            if (error) return response.status(400).json(error);
+            if (error || !contributor) return response.status(400).json('Unauthorized API call.');
             if (!(contributor.isAdmin || contributor.isSuperUser)) return response.status(400).json('Unauthorized API call.');
 
             Contributor
@@ -60,7 +60,7 @@ router.get('/role', authenticationMiddleware, function(request, response) {
 
     Contributor.findById(request.userData.id)
         .exec((error, contributor) => {
-            if (error) return response.json({ isAdmin: false });
+            if (error || !contributor) return response.json({ isAdmin: false });
             response.json({ isAdmin: contributor.isAdmin || contributor.isSuperUser });
         })
 });
@@ -72,11 +72,12 @@ router.post('/ban/:id', authenticationMiddleware, function(request, response) {
 
     Contributor.findById(request.userData.id)
         .exec((error, contributor) => {
-            if (error) return response.status(400).json(error);
+            if (error || !contributor) return response.status(400).json('Unauthorized API call.');
             if (!(contributor.isAdmin || contributor.isSuperUser)) return response.status(400).json('Authority does not permit the call.');
 
             Contributor.findById(request.params.id)
                 .exec((error, toBeBannedContributor) => {
+                    if (error || !toBeBannedContributor) return response.status(400).json('Request ID is Invalid.');
                     if (contributor.isSuperUser || !(toBeBannedContributor.isAdmin || toBeBannedContributor.isSuperUser) ) {
                         let banState = !toBeBannedContributor.isBanned;
                         toBeBannedContributor.isBanned = banState;

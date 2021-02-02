@@ -8,6 +8,7 @@ import React, { Component } from 'react';
 import { withRouter } from 'react-router-dom';
 import axios from 'axios';
 import { GoogleLogin, GoogleLogout } from 'react-google-login';
+import { Helmet, HelmetProvider } from 'react-helmet-async';
 
 import { Alert } from '@material-ui/lab'
 import { Snackbar, Checkbox, Typography, Grid, TextField, FormControl, FormControlLabel, InputLabel, Select, MenuItem, Button, Hidden } from '@material-ui/core';
@@ -274,171 +275,180 @@ const authorizationHeaders = () => {
     // syntax called JSX. This just looks scary.
     render() {
         return(
-            <form autoComplete="off" onSubmit={this.onSubmit}>
-                <Snackbar open={this.state.isError} onClose={() => this.setState({isError: false})} autoHideDuration={6000}>
-                       <Alert severity="error">
-                           { this.state.errorMessage }
-                       </Alert>
-                </Snackbar>
-                <Snackbar open={this.state.isSuccess} onClose={() => this.setState({isSuccess: false})} autoHideDuration={12000}>
-                       <Alert severity="success">
-                           { this.state.successMessage }
-                       </Alert>
-                </Snackbar>
-                <Grid container spacing={3} justify="center">
-                    <Grid item xs={12} sm={9}>
-                        <Typography variant="h5">
-                            { this.state.currentID.length > 0 ? 'Uploaded by ' + this.state.uploadedBy : 'Become a Contributor' }
-                        </Typography>
-                        <Typography variant="h6" color="primary">
-                            {(function(){
-                                if (this.state.currentID.length > 0) {
-                                    if (this.state.verifiedBy.length > 0) {
-                                        return 'Last verified by ' + this.state.verifiedBy
-                                    }
-                                    return 'No verification'
-                                }
-                                return ''
-                            }.bind(this))()}
-                        </Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={9}>
-                        <TextField 
-                            disabled={this.state.formDisabled}
-                            value={this.state.filename}
-                            required 
-                            variant="outlined" 
-                            fullWidth 
-                            onChange={this.onChangeFilename} 
-                            label="Filename" 
-                            placeholder="e.g. Grade 7 General-Science Quarter 1" 
-                            InputLabelProps={{shrink:true}} 
-                            inputProps={{maxLength: 256}}
-                        >
-                        </TextField>
-                    </Grid>
-                    <Grid item xs={12} sm={9}>
-                        <TextField 
-                            value={this.state.description}
-                            disabled={this.state.formDisabled}
-                            multiline 
-                            variant="outlined" 
-                            fullWidth 
-                            onChange={this.onChangeDescription} 
-                            label="Description" 
-                            placeholder="Type in a general overview of the contents..." 
-                            InputLabelProps={{shrink:true}} 
-                            inputProps={{maxLength: 400}}
-                        >
-                        </TextField>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                        <TextField 
-                            value={this.state.tags}
-                            disabled={this.state.formDisabled}
-                            multiline 
-                            variant="outlined" 
-                            fullWidth 
-                            onChange={this.onChangeTags} 
-                            label="Tags" 
-                            placeholder="Comma-separated tags e.g. science, heat, energy" 
-                            InputLabelProps={{shrink:true}} 
-                            inputProps={{maxLength: 256}}
-                        >
-                        </TextField>
-                    </Grid>
-                    <Grid item xs={12} sm={3}>
-                        <FormControl variant="outlined" required fullWidth disabled={this.state.formDisabled}>
-                            <InputLabel id="select-filetype-label">Filetype</InputLabel>
-                            <Select
-                                onChange={this.onChangeFiletype} 
-                                labelId="select-filetype-label" 
-                                label="Filetype" 
-                                value={this.state.filetype}
-                            >
-                                <MenuItem value="doc">.doc</MenuItem>
-                                <MenuItem value="pdf">.pdf</MenuItem>
-                                <MenuItem value="pptx">.pptx</MenuItem>
-                                <MenuItem value="xlsx">.xlsx</MenuItem>
-                                <MenuItem value="odf">.odf</MenuItem>
-                                <MenuItem value="epub">.epub</MenuItem>
-                                <MenuItem value="zip">.zip</MenuItem>
-                                <MenuItem value="others">Others</MenuItem>
-                            </Select>
-                        </FormControl>
-                    </Grid>
-                    <Grid item xs={12} sm={9}>
-                        <Typography variant="h6">
-                            Add File URLs
-                        </Typography>
-                    </Grid>
-                    {this.state.downloadURLs.map((value, index) => {
-                        return <Grid item xs={12} sm={9} key={index}>
-                                    <TextField 
-                                        variant="outlined"
-                                        disabled={this.state.formDisabled}
-                                        required={index === 0}
-                                        fullWidth 
-                                        error={ !RegExp(this.state.URLAddressRegEx.source, this.state.URLAddressRegEx.flags).test(this.state.downloadURLs[index]) && this.state.downloadURLs[index].length > 0} 
-                                        helperText={ (!RegExp(this.state.URLAddressRegEx.source, this.state.URLAddressRegEx.flags).test(this.state.downloadURLs[index]) && this.state.downloadURLs[index].length > 0) ? 'Invalid URL!' : ' '}
-                                        onChange={this.onChangeDownloadURLs} 
-                                        value={this.state.downloadURLs[index]} 
-                                        label={index > 0 ? "Backup URL " + index : "Main URL"}  
-                                        placeholder={"https://example.com/backup/" + index} 
-                                        InputLabelProps={{shrink:true}} 
-                                        inputProps={{maxLength: 1000, id: 'downloadURL-'+index, spellCheck: false }}>
-                                    </TextField>
-                               </Grid>
-                    })}
-                    <Hidden xsUp={this.state.currentID.length === 0}>
+            <HelmetProvider>
+                <Helmet>
+                    <title>Fairu: Contribute to a Free and Open Academic Repository</title>
+                    <meta name="description" content="We foster a community of collaboration and aid. Help each other out by uploading your own academic resource." />
+                    <meta name="keywords" content="fairu,upload,contribute,help,free,academic,learning,resources,files,subject,description" />
+                    <meta name="og:description" content="We foster a community of collaboration and aid. Help each other out by uploading your own academic resource." />
+                    <meta name="twitter:description" content="We foster a community of collaboration and aid. Help each other out by uploading your own academic resource." />
+                </Helmet>
+                <form autoComplete="off" onSubmit={this.onSubmit}>
+                    <Snackbar open={this.state.isError} onClose={() => this.setState({isError: false})} autoHideDuration={6000}>
+                           <Alert severity="error">
+                               { this.state.errorMessage }
+                           </Alert>
+                    </Snackbar>
+                    <Snackbar open={this.state.isSuccess} onClose={() => this.setState({isSuccess: false})} autoHideDuration={12000}>
+                           <Alert severity="success">
+                               { this.state.successMessage }
+                           </Alert>
+                    </Snackbar>
+                    <Grid container spacing={3} justify="center">
                         <Grid item xs={12} sm={9}>
-                            <Typography variant="h6">Is the file verified?</Typography>
-                            <FormControlLabel
-                                style={{marginLeft: '0px'}}
-                                labelPlacement="start"
-                                label="The file is safe and reliable for academic purposes."
-                                control={<Checkbox 
-                                    color="primary" 
-                                    checked={this.state.isVerified} 
-                                    name="Verified" onChange={() => { this.setState({isVerified: !this.state.isVerified})}} 
-                                />}
-                            />
+                            <Typography variant="h5">
+                                { this.state.currentID.length > 0 ? 'Uploaded by ' + this.state.uploadedBy : 'Become a Contributor' }
+                            </Typography>
+                            <Typography variant="h6" color="primary">
+                                {(function(){
+                                    if (this.state.currentID.length > 0) {
+                                        if (this.state.verifiedBy.length > 0) {
+                                            return 'Last verified by ' + this.state.verifiedBy
+                                        }
+                                        return 'No verification'
+                                    }
+                                    return ''
+                                }.bind(this))()}
+                            </Typography>
                         </Grid>
-                    </Hidden>
-                    <Grid container justify="flex-end" item xs={12} sm={9}>
-                        <Hidden xsUp={this.state.username.length > 0}>
-                            <GoogleLogin
-                                clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}
-                                buttonText={ this.state.username.length > 0 ? `LOGGED IN AS ${this.state.username.toUpperCase()}` : "LOGIN WITH GOOGLE" }
-                                onSuccess={this.onSuccessGoogle}
-                                onFailure={this.onFailureGoogle}
-                                cookiePolicy={'single_host_origin'}
-                                style={{width: '100%'}}
-                            />
+                        <Grid item xs={12} sm={9}>
+                            <TextField 
+                                disabled={this.state.formDisabled}
+                                value={this.state.filename}
+                                required 
+                                variant="outlined" 
+                                fullWidth 
+                                onChange={this.onChangeFilename} 
+                                label="Filename" 
+                                placeholder="e.g. Grade 7 General-Science Quarter 1" 
+                                InputLabelProps={{shrink:true}} 
+                                inputProps={{maxLength: 256}}
+                            >
+                            </TextField>
+                        </Grid>
+                        <Grid item xs={12} sm={9}>
+                            <TextField 
+                                value={this.state.description}
+                                disabled={this.state.formDisabled}
+                                multiline 
+                                variant="outlined" 
+                                fullWidth 
+                                onChange={this.onChangeDescription} 
+                                label="Description" 
+                                placeholder="Type in a general overview of the contents..." 
+                                InputLabelProps={{shrink:true}} 
+                                inputProps={{maxLength: 400}}
+                            >
+                            </TextField>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField 
+                                value={this.state.tags}
+                                disabled={this.state.formDisabled}
+                                multiline 
+                                variant="outlined" 
+                                fullWidth 
+                                onChange={this.onChangeTags} 
+                                label="Tags" 
+                                placeholder="Comma-separated tags e.g. science, heat, energy" 
+                                InputLabelProps={{shrink:true}} 
+                                inputProps={{maxLength: 256}}
+                            >
+                            </TextField>
+                        </Grid>
+                        <Grid item xs={12} sm={3}>
+                            <FormControl variant="outlined" required fullWidth disabled={this.state.formDisabled}>
+                                <InputLabel id="select-filetype-label">Filetype</InputLabel>
+                                <Select
+                                    onChange={this.onChangeFiletype} 
+                                    labelId="select-filetype-label" 
+                                    label="Filetype" 
+                                    value={this.state.filetype}
+                                >
+                                    <MenuItem value="doc">.doc</MenuItem>
+                                    <MenuItem value="pdf">.pdf</MenuItem>
+                                    <MenuItem value="pptx">.pptx</MenuItem>
+                                    <MenuItem value="xlsx">.xlsx</MenuItem>
+                                    <MenuItem value="odf">.odf</MenuItem>
+                                    <MenuItem value="epub">.epub</MenuItem>
+                                    <MenuItem value="zip">.zip</MenuItem>
+                                    <MenuItem value="others">Others</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={9}>
+                            <Typography variant="h6">
+                                Add File URLs
+                            </Typography>
+                        </Grid>
+                        {this.state.downloadURLs.map((value, index) => {
+                            return <Grid item xs={12} sm={9} key={index}>
+                                        <TextField 
+                                            variant="outlined"
+                                            disabled={this.state.formDisabled}
+                                            required={index === 0}
+                                            fullWidth 
+                                            error={ !RegExp(this.state.URLAddressRegEx.source, this.state.URLAddressRegEx.flags).test(this.state.downloadURLs[index]) && this.state.downloadURLs[index].length > 0} 
+                                            helperText={ (!RegExp(this.state.URLAddressRegEx.source, this.state.URLAddressRegEx.flags).test(this.state.downloadURLs[index]) && this.state.downloadURLs[index].length > 0) ? 'Invalid URL!' : ' '}
+                                            onChange={this.onChangeDownloadURLs} 
+                                            value={this.state.downloadURLs[index]} 
+                                            label={index > 0 ? "Backup URL " + index : "Main URL"}  
+                                            placeholder={"https://example.com/backup/" + index} 
+                                            InputLabelProps={{shrink:true}} 
+                                            inputProps={{maxLength: 1000, id: 'downloadURL-'+index, spellCheck: false }}>
+                                        </TextField>
+                                   </Grid>
+                        })}
+                        <Hidden xsUp={this.state.currentID.length === 0}>
+                            <Grid item xs={12} sm={9}>
+                                <Typography variant="h6">Is the file verified?</Typography>
+                                <FormControlLabel
+                                    style={{marginLeft: '0px'}}
+                                    labelPlacement="start"
+                                    label="The file is safe and reliable for academic purposes."
+                                    control={<Checkbox 
+                                        color="primary" 
+                                        checked={this.state.isVerified} 
+                                        name="Verified" onChange={() => { this.setState({isVerified: !this.state.isVerified})}} 
+                                    />}
+                                />
+                            </Grid>
                         </Hidden>
-                        <Hidden xsUp={this.state.username.length <= 0}>
-                            <GoogleLogout
-                                clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}
-                                buttonText={`LOGOUT OF ${this.state.email.toUpperCase()}`}
-                                onLogoutSuccess={this.onLogoutGoogle}
-                            />
-                        </Hidden>
-                    </Grid>
                         <Grid container justify="flex-end" item xs={12} sm={9}>
-                        <Button 
-                            disabled={this.state.formDisabled}
-                            type="submit" 
-                            variant="contained" 
-                            color="primary"
-                            size="medium"
-                            fullWidth
-                            startIcon={<CloudUploadIcon />}
-                        >
-                            { this.state.currentID.length > 0 ? 'Save Changes' : 'Upload to Fairu' }
-                        </Button>
-                    </Grid>
-                </Grid> 
-            </form>
+                            <Hidden xsUp={this.state.username.length > 0}>
+                                <GoogleLogin
+                                    clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}
+                                    buttonText={ this.state.username.length > 0 ? `LOGGED IN AS ${this.state.username.toUpperCase()}` : "LOGIN WITH GOOGLE" }
+                                    onSuccess={this.onSuccessGoogle}
+                                    onFailure={this.onFailureGoogle}
+                                    cookiePolicy={'single_host_origin'}
+                                    style={{width: '100%'}}
+                                />
+                            </Hidden>
+                            <Hidden xsUp={this.state.username.length <= 0}>
+                                <GoogleLogout
+                                    clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}
+                                    buttonText={`LOGOUT OF ${this.state.email.toUpperCase()}`}
+                                    onLogoutSuccess={this.onLogoutGoogle}
+                                />
+                            </Hidden>
+                        </Grid>
+                            <Grid container justify="flex-end" item xs={12} sm={9}>
+                            <Button 
+                                disabled={this.state.formDisabled}
+                                type="submit" 
+                                variant="contained" 
+                                color="primary"
+                                size="medium"
+                                fullWidth
+                                startIcon={<CloudUploadIcon />}
+                            >
+                                { this.state.currentID.length > 0 ? 'Save Changes' : 'Upload to Fairu' }
+                            </Button>
+                        </Grid>
+                    </Grid> 
+                </form>
+            </HelmetProvider>
         )
     }
 }

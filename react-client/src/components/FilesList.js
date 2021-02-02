@@ -9,6 +9,8 @@ import { Link, withRouter } from 'react-router-dom';
 import queryString from 'query-string';
 import axios from 'axios';
 
+import { Helmet, HelmetProvider } from 'react-helmet-async';
+
 // material-ui components
 import { withStyles } from '@material-ui/core';
 import { Box, Grid, Typography, Paper, InputBase, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Fade, Switch } from '@material-ui/core';
@@ -196,55 +198,65 @@ class FilesList extends Component {
 
         // massive
         return (
-            <Grid container spacing={3} justify="center">
-                <Grid item xs={12} sm={9}>
-                    <Typography variant="h4">Browse Files</Typography>
-                </Grid>
-                <Grid item xs={12} sm={9}>
-                    <Paper component="form" className={classes.root} onSubmit={this.onSubmit}>
-                        <IconButton className={classes.iconButton} aria-label="menu" onClick={this.onToggleSearchOptions}>
-                            <MenuIcon />
-                        </IconButton>
-                        <InputBase placeholder="Search files" fullWidth={true} onChange={this.onChangeSearchBar} value={this.state.query} />
-                        <IconButton type="submit" className={classes.iconButton} aria-label="search">
-                            <SearchIcon />
-                        </IconButton>
-                    </Paper>
-                </Grid>
-                <Fade in={this.state.showSearchOptions} style={{display: this.state.showSearchOptions ? 'block' : 'none'}}>
+            <HelmetProvider>
+                <Helmet>
+                    <title>Fairu: Search and Download Academic Resources Hassle-Free</title>
+                    <meta name="description" content="Find the academic resource you need, ranging from all grade levels and subjects, free of charge and no registration required."/>
+                    <meta name="keywords" content="fairu,search,find,list,subjects,verified,unverified,school,resources,download,free,no,registration,math,english,science" />
+                    <meta name="og:description" content="Find the academic resource you need, ranging from all grade levels and subjects, free of charge and no registration required."/>
+                    <meta name="twitter:description" content="Find the academic resource you need, ranging from all grade levels and subjects, free of charge and no registration required." />
+                </Helmet>
+
+                <Grid container spacing={3} justify="center">
                     <Grid item xs={12} sm={9}>
-                        <Paper className={classes.root}>
-                            <Box p={1}>
-                                <Switch color="primary" checked={this.state.showUnverified} onChange={this.onToggleShowUnverified} name="Show Unverified"/> Show Unverified Files
-                            </Box>
+                        <Typography variant="h4">Browse Files</Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={9}>
+                        <Paper component="form" className={classes.root} onSubmit={this.onSubmit}>
+                            <IconButton className={classes.iconButton} aria-label="menu" onClick={this.onToggleSearchOptions}>
+                                <MenuIcon />
+                            </IconButton>
+                            <InputBase placeholder="Search files" fullWidth={true} onChange={this.onChangeSearchBar} value={this.state.query} />
+                            <IconButton type="submit" className={classes.iconButton} aria-label="search">
+                                <SearchIcon />
+                            </IconButton>
                         </Paper>
                     </Grid>
-                </Fade>
-                <Fade in={this.state.files.length === 0} style={{display: this.state.files.length === 0 ? 'block' : 'none'}}>
+                    <Fade in={this.state.showSearchOptions} style={{display: this.state.showSearchOptions ? 'block' : 'none'}}>
+                        <Grid item xs={12} sm={9}>
+                            <Paper className={classes.root}>
+                                <Box p={1}>
+                                    <Switch color="primary" checked={this.state.showUnverified} onChange={this.onToggleShowUnverified} name="Show Unverified"/> Show Unverified Files
+                                </Box>
+                            </Paper>
+                        </Grid>
+                    </Fade>
+                    <Fade in={this.state.files.length === 0} style={{display: this.state.files.length === 0 ? 'block' : 'none'}}>
+                        <Grid item xs={12} sm={9}>
+                            <Typography align="center" color="primary" noWrap>No Results Found!</Typography>
+                        </Grid>
+                    </Fade>
                     <Grid item xs={12} sm={9}>
-                        <Typography align="center" color="primary" noWrap>No Results Found!</Typography>
+                        <List> {/* this is the code that renders all the items in the page */}
+                            {this.state.files.map(function(file,index) {
+                                return (
+                                <ListItem button divider key={index} component={Link} to={'/list/details/' + file._id}>
+                                    <ListItemText style={{whiteSpace: "nowrap", overflow: 'hidden', textOverflow: 'ellipsis'}} primary={file.filename} secondary={file.downloadURLs[0]}></ListItemText>
+                                    <ListItemSecondaryAction>
+                                        <IconButton edge="end" aria-label="download">
+                                            <CloudDownloadIcon />
+                                        </IconButton>
+                                    </ListItemSecondaryAction>
+                                </ListItem>
+                                )
+                            })}
+                        </List>
                     </Grid>
-                </Fade>
-                <Grid item xs={12} sm={9}>
-                    <List> {/* this is the code that renders all the items in the page */}
-                        {this.state.files.map(function(file,index) {
-                            return (
-                            <ListItem button divider key={index} component={Link} to={'/list/details/' + file._id}>
-                                <ListItemText style={{whiteSpace: "nowrap", overflow: 'hidden', textOverflow: 'ellipsis'}} primary={file.filename} secondary={file.downloadURLs[0]}></ListItemText>
-                                <ListItemSecondaryAction>
-                                    <IconButton edge="end" aria-label="download">
-                                        <CloudDownloadIcon />
-                                    </IconButton>
-                                </ListItemSecondaryAction>
-                            </ListItem>
-                            )
-                        })}
-                    </List>
+                    <Grid container justify="center" item xs={12} sm={9}>
+                        <Pagination count={this.state.pageCount} page={this.state.pageIndex + 1} onChange={this.onChangePage} variant="outlined" shape="rounded" color="primary"/>
+                    </Grid>
                 </Grid>
-                <Grid container justify="center" item xs={12} sm={9}>
-                    <Pagination count={this.state.pageCount} page={this.state.pageIndex + 1} onChange={this.onChangePage} variant="outlined" shape="rounded" color="primary"/>
-                </Grid>
-            </Grid>
+            </HelmetProvider>
         )
     }
 }

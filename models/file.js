@@ -51,6 +51,10 @@ const fileSchema = new Schema({
         required: true,
         validate: [ validateDownloadURLs, 'URL does not look proper.']
     }, 
+    downloads: {
+        type: Number,
+        default: 0
+    },
     // uploaderID is set server-side not client-side through secure
     // authentication processes, this is to restrict manipulation of uploaderID
     uploaderID: {

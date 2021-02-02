@@ -19,7 +19,7 @@ const useStyles = makeStyles({ root: { width: 500 } });
 // uses react's hook to keep its state
 export default function MobileNavigationBar() {
     const classes = useStyles();
-    const [value, setValue] = React.useState('/' + window.location.pathname.split('/')[0]); // This highlights 'home' right away
+    const [value, setValue] = React.useState('/' + window.location.pathname.split('/')[1]); // This highlights 'home' right away
 
     // event handler for the current value of 
     // the highlighted part in mobile navigation
