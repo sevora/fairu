@@ -8,7 +8,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 import { makeStyles } from '@material-ui/core/styles';
-import { AppBar, Toolbar, Typography, Button } from '@material-ui/core';
+import { AppBar, Toolbar, Button } from '@material-ui/core';
 
 // Styling made manually
 const useStyles = makeStyles(function(theme) {
@@ -21,6 +21,10 @@ const useStyles = makeStyles(function(theme) {
         },
         title: {
             flexGrow: 1,
+        },
+        logo: {
+            margin: 2,
+            maxWidth: 40
         }
     }
 });
@@ -35,7 +39,8 @@ export default function NavigationBar() {
             {/* Style here is a hack to force black text and white background */}
             <AppBar position="static" style={{ color: '#000', background: '#fff' }}>
                 <Toolbar>
-                    <Typography variant="h6" className={classes.title}>Fairu</Typography>
+
+                    <Link to={'/'} className={classes.title}><img src="/fairu-logo/Icon_blue.png" className={classes.logo} alt="Fairu"/></Link>
 
                     {/* These are used to navigate the website */}
                     <Button color="inherit" component={Link} to={'/'}>Home</Button>
