@@ -1,7 +1,8 @@
 /*
  * File Schema
  * Defines everything that a file should 
- * have.
+ * have. A file is basically going to store 
+ * metadata to retrieve the file.
  */
 const mongoose = require('mongoose');
 const uniqueValidator = require('mongoose-unique-validator')

@@ -13,11 +13,14 @@ const helmet = require('helmet');
 require('dotenv').config();
 
 // server backend is on specified port 
-// but default is set at 8000
+// but default is set at 80
 const app = express();
-const port = process.env.PORT || 8000;
+const port = process.env.PORT || 80;
 
-//
+// These are the middlewares from other libraries
+// cors allows Cross-Origin Requests
+// express-json allows json bodies
+// helmet provides security against malicious clients
 app.use(cors());
 app.use(express.json());
 app.use(helmet());
@@ -39,10 +42,12 @@ const authenticationRouter = require('./routes/authentication.js');
 const filesRouter = require('./routes/files.js');
 const contributorsRouter = require('./routes/contributors.js');
 
+// these are the server endpoints
 app.use('/auth', authenticationRouter);
 app.use('/files', filesRouter);
 app.use('/contributors', contributorsRouter);
 
+// server runs at specified or default port
 app.listen(port, function() {
     console.log(`Server is running on port: ${port}`);
 });

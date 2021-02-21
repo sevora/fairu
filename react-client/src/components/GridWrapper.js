@@ -1,3 +1,7 @@
+/*
+ * Workaround for the Material-UI Data Grid
+ * Specifically auto height does not properly work
+ */
 import react from 'react';
 import { DataGrid } from '@material-ui/data-grid';
 

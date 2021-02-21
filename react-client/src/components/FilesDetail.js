@@ -1,13 +1,20 @@
+/*
+ * FilesDetail Component
+ * meant to present the information of a file.
+ */
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import ReCAPTCHA from "react-google-recaptcha";
 
-import { withStyles, Grid, Box, Chip, Accordion, AccordionSummary, AccordionDetails, Typography, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button} from '@material-ui/core';
+import { Alert } from '@material-ui/lab';
+import { withStyles, Grid, Box, Chip, Snackbar, Accordion, AccordionSummary, AccordionDetails, Typography, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button} from '@material-ui/core';
 
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import InfoIcon from '@material-ui/icons/Info';
 import CloudDownloadIcon from '@material-ui/icons/CloudDownload';
 
+// Custom styling/theming with Material-UI
 const styles = theme => ({
     accordion: {
         width: '100%'
@@ -28,48 +35,118 @@ const styles = theme => ({
     }
 });
 
+/*
+ * FilesDetail should:
+ * - Show the file details
+ * - Allow downloading of files with anti-bot security (reCAPTCHA)
+ */
 class FilesDetail extends Component {
     constructor(properties) {
         super(properties);
 
+        // important to provide context
         this.onClickDownload = this.onClickDownload.bind(this);
+        this.onChangeReCAPTCHA = this.onChangeReCAPTCHA.bind(this);
+        this.grecaptcha = null;
 
         this.state = {
+            // all file details start empty
             filename: '',
             description: '',
             tags: [''],
             filetype: '',
             downloadURLs: [''],
-            fixedDownloadURLs: [''],
             verified: false,
 
+            // for the downloading
+            captchaID: '',
             dialogOpen: false,
-            currentLink: ''
+            currentLink: '',
+
+            // this is for user-friendly messages
+            isError: false,
+            isSuccess: false,
+            errorMessage: '',
+            successMessage: ''
         }
     }
 
+    /*
+     * This is called whenever a link is clicked among the download URLs section.
+     * reCAPTCHA verification is required for this to proceed properly.
+     */
     onClickDownload(index) {
-        if (this.state.verified) {
-            const newWindow = window.open(this.state.fixedDownloadURLs[index], '_blank', 'noopener,noreferrer')
-            if (newWindow) newWindow.opener = null
+        // if there is no reCAPTCHA, show an error message
+        if (this.state.captchaID.length === 0) {
+            return this.setState({ isError: true, errorMessage: 'ReCAPTCHA authorization required.' })
+        }
+
+        // if the interpreter reaches this line, this means reCAPTCHA token is present
+        axios.post(this.state.downloadURLs[index], { captchaID: this.state.captchaID })
+            .then(response => {
+                // reset the recaptcha right away
+                if (this.grecaptcha) this.grecaptcha.reset();
+
+                // if the file is verified, open a blank window to the given real URL of the file,
+                // otherwise open a pop-up to warn the user that the file is not verified.
+                if (this.state.verified) {
+                    const newWindow = window.open(response.data.downloadURL, '_blank', 'noopener,noreferrer')
+                    if (newWindow) newWindow.opener = null;
+                    this.setState({ isSuccess: true, successMessage: 'Redirecting to download file.' });
+                } else {
+                    this.setState({ currentLink: response.data.downloadURL, dialogOpen: true, captchaID: '' });
+                }
+            })
+            .catch(error => {
+                // Make the error message look good.
+                let capitalized;
+                try {
+                    let message = error.response.data.toString();
+                    capitalized = message.charAt(0).toUpperCase() + message.slice(1);
+                } catch(e) {
+                    capitalized = 'Failed to send.'
+                }
+                // resets recaptcha right away
+                if (this.grecaptcha) this.grecaptcha.reset();
+
+                this.setState({ isError: true, errorMessage: capitalized, captchaID: '' });
+            })
+    }
+
+    /*
+     * This is called whenever the reCAPTCHA v2 checkbox is clicked or expires,
+     * id is null if it expires.
+     */
+    onChangeReCAPTCHA(id) {
+        if (id === null) {
+            this.setState({ isError: true, errorMessage: 'ReCAPTCHA verification expired.' })
         } else {
-            this.setState({ currentLink: this.state.fixedDownloadURLs[index], dialogOpen: true });
+            this.setState({ captchaID: id });
         }
     }
 
+    /*
+     * This is called whenever this component loads on the page,
+     * this is meant to get all the file information required.
+     */
     componentDidMount() {
         axios.get(process.env.REACT_APP_API_URL + '/files/details/' + this.props.match.params.id)
             .then(response => {
-                let { filename, description, tags, filetype, downloadURLs, verified } = response.data; 
-                let fixedDownloadURLs = downloadURLs.map((url,index) => { 
-                    return `${process.env.REACT_APP_API_URL}/files/download/${this.props.match.params.id}/${index}`;
-                });
-//                console.log(fixedURLs);
+                let { filename, description, tags, filetype, downloadURLsLength, verified } = response.data; 
+
+                // the downloadURLs are not exposed for security reasons and can be accessed 
+                // using an API endpoint that requires reCAPTCHA v2 verification.
+                let downloadURLs = [] 
+
+                // all the downloadURLs follow a pattern
+                for (let index = 0; index < downloadURLsLength; ++index) {
+                    downloadURLs.push(`${process.env.REACT_APP_API_URL}/files/download/${this.props.match.params.id}/${index}`);
+                }
+
                 this.setState({ 
                     filename, 
                     filetype,
                     downloadURLs,
-                    fixedDownloadURLs,
                     verified,
                     description: description ? description : '',
                     tags: tags ? tags : ['']
@@ -77,13 +154,27 @@ class FilesDetail extends Component {
             })
             .catch(error => {
                 // show file does not exist
+                this.setState({ isError: true, errorMessage: 'File does not exist.' });
             });
     }
 
+    /*
+     * Render JSX method of this component
+     */
     render() {
         const { classes } = this.props;
         return (
             <Grid container justify="center" spacing={2}>
+                   <Snackbar open={this.state.isError} onClose={() => this.setState({isError: false})} autoHideDuration={6000}>
+                           <Alert severity="error">
+                               { this.state.errorMessage }
+                           </Alert>
+                    </Snackbar>
+                    <Snackbar open={this.state.isSuccess} onClose={() => this.setState({isSuccess: false})} autoHideDuration={12000}>
+                           <Alert severity="success">
+                               { this.state.successMessage }
+                           </Alert>
+                    </Snackbar>
                 <Grid item xs={12} sm={9}>
                     <Typography variant="h5" noWrap>
                         {this.state.filename}
@@ -115,7 +206,7 @@ class FilesDetail extends Component {
                                 </AccordionDetails>
                             </Accordion>
  
-                            <Accordion expanded={true}>
+                            <Accordion>
                                 <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
                                     <Typography className={classes.accordionHeading}>Description</Typography>
                                     <Typography className={classes.accordionSubheading}>A quick overview of the contents of the file.</Typography>
@@ -126,7 +217,8 @@ class FilesDetail extends Component {
                                     </Box>
                                 </AccordionDetails>
                             </Accordion>
-                            <Accordion expanded={true}>
+
+                            <Accordion>
                                 <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
                                     <Typography className={classes.accordionHeading}>Tags</Typography>
                                     <Typography className={classes.accordionSubheading}>
@@ -158,7 +250,7 @@ class FilesDetail extends Component {
                     <Box mt={5}>
                         <Grid container direction="row" alignItems="center">
                             <Box mr={1}><InfoIcon fontSize="small"/></Box>
-                            <Box fontSize="h6.fontSize">Download Links</Box>
+                            <Box fontSize="h6.fontSize">{ `Download Links (.${this.state.filetype})` }</Box>
                         </Grid>
                     </Box>
                 </Grid>
@@ -197,6 +289,13 @@ class FilesDetail extends Component {
                             </Button>
                         </DialogActions>
                     </Dialog>
+                </Grid>
+                <Grid item xs={12} sm={9} container justify="flex-end">
+                     <ReCAPTCHA
+                         sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY}
+                         onChange={this.onChangeReCAPTCHA}
+                         ref={element => { this.grecaptcha = element; }}
+                    />,
                 </Grid>
             </Grid>
         )

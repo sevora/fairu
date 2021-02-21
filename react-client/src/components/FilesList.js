@@ -44,8 +44,10 @@ const styles = theme => ({
 });
 
 /*
- * Object component as this takes in a lot 
- * of values
+ * FilesList have features such as:
+ * - Searching 
+ * - Pagination
+ * - Accessing File Details
  */
 class FilesList extends Component {
     constructor(properties) {
@@ -71,6 +73,10 @@ class FilesList extends Component {
         }
     }
 
+    /*
+     * this is called whenever this component is mounted, a search occurs, or a pagination, or any of that sort
+     * and it updates the files array.
+     */
     searchFiles() {
         if (this.state.query && this.state.query.length > 0) { 
             // GET request using a query string
@@ -119,9 +125,15 @@ class FilesList extends Component {
         }
     }
 
-    // triggers when search bar input value is changed
+    /*
+     * This is called when search bar input value is changed
+     */ 
     onChangeSearchBar(event) { this.setState({ query: event.target.value }); }
 
+    /*
+     * This is called whenever a page change occurs by clicking the 
+     * page navigation.
+     */
     onChangePage(event, value) {
         if (value - 1 !== this.state.pageIndex) {
             this.setState({ pageIndex: value - 1 }, () => {
@@ -130,7 +142,10 @@ class FilesList extends Component {
         }
     }
 
-    // triggers when search bar submit is triggered
+    /*
+     * This is called when search bar submit is clicked or enter button is clicked.
+     * It updates the files array essentially changing the current list.
+     */
     onSubmit(event) {
         // prevent traditional form handling
         event.preventDefault();
@@ -145,24 +160,29 @@ class FilesList extends Component {
                 this.searchFiles();
             })
         }
-        // GET request using a query string
-        // query strings are ?name=Foo&age=16 in https://bar.com/?name=Foo&age=16
-        // ternary operation: if the query has more than one character, search files with
-        // that query, else just search with no query (returns default files)
-        // query.length > 0 ? this.searchFiles(query) : this.searchFiles()
     }
 
+    /*
+     * This is called when the triple horizontal bar is clicked.
+     * It should show options in the JSX.
+     */
     onToggleSearchOptions() {
         this.setState({ showSearchOptions: !this.state.showSearchOptions });
     }
 
+    /*
+     * This is called when the toggle checkbox/slider/button is toggled
+     * and sets whether unverified files are shown.
+     */
     onToggleShowUnverified() {
         this.setState({ showUnverified: !this.state.showUnverified, pageIndex: 0 }, () => {
             this.searchFiles();
         });
     }
 
-    // this triggers when this component loads or mounts is what they call it
+    /*
+     * This is called this component loads
+     */
     componentDidMount() {
         // this is to support URL sharing with querystrings
         // this.state.query should contain the current query
@@ -191,7 +211,9 @@ class FilesList extends Component {
         }
     }
 
-    // the daunting function, mixed with JSX and logic
+    /*
+     * JSX or the HTML-like thing but this shit just looks messy
+     */
     render() {
         // this is possible due to withStyles
         const { classes } = this.props;
@@ -241,7 +263,11 @@ class FilesList extends Component {
                             {this.state.files.map(function(file,index) {
                                 return (
                                 <ListItem button divider key={index} component={Link} to={'/list/details/' + file._id}>
-                                    <ListItemText style={{whiteSpace: "nowrap", overflow: 'hidden', textOverflow: 'ellipsis'}} primary={file.filename} secondary={file.downloadURLs[0]}></ListItemText>
+                                    <ListItemText 
+                                        style={{whiteSpace: "nowrap", overflow: 'hidden', textOverflow: 'ellipsis'}} 
+                                        primary={file.filename} 
+                                        secondary={process.env.REACT_APP_API_URL + '/download/' + file._id}>
+                                    </ListItemText>
                                     <ListItemSecondaryAction>
                                         <IconButton edge="end" aria-label="download">
                                             <CloudDownloadIcon />

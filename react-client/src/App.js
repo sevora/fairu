@@ -1,3 +1,6 @@
+/*
+ * This is where the main structure of the application is defined
+ */
 // import logo from './logo.svg';
 import './App.css';
 import '@fontsource/roboto';
@@ -5,11 +8,11 @@ import '@fontsource/roboto';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 
 // Important for routing and URL trickery
-import { BrowserRouter as Router, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 
 // Adding my own theming and ofcourse layout
 import { createMuiTheme, responsiveFontSizes, ThemeProvider } from '@material-ui/core/styles';
-import { Container, Hidden } from '@material-ui/core';
+import { Container, Hidden, CssBaseline } from '@material-ui/core';
 
 // All components written for this project
 import Home from './components/Home.js'
@@ -19,8 +22,9 @@ import FilesUpload from './components/FilesUpload.js';
 import FilesList from './components/FilesList.js';
 import FilesDetail from './components/FilesDetail.js';
 import AdministratorBoard from './components/AdministratorBoard.js';
+import PageNotFound from './components/PageNotFound.js';
 
-// This theme is to enforce black icons on mobile navigation
+// This theme is to enforce blue icons on mobile navigation
 let theme = createMuiTheme({ palette: { primary: { main: '#0023ff' } } });
 theme = responsiveFontSizes(theme);
 
@@ -47,6 +51,7 @@ export default function App() {
 
                 </Helmet>
                 <ThemeProvider theme={theme}>
+                    <CssBaseline />
                     {/* This is used to hide the navigation bar on mobile devices */}
                     <Hidden xsDown={true}>
                         <NavigationBar />
@@ -54,12 +59,15 @@ export default function App() {
 
                     {/* This is where all the pages will be rendered via react-router-dom */}
                     <Container style={{ marginTop: '20px', marginBottom: '60px' }}>
-                        <Route exact path="/" component={Home} />
-                        <Route exact path="/upload" component={FilesUpload} />
-                        <Route exact path="/list" component={FilesList} /> 
-                        <Route exact path="/list/details/:id" component={FilesDetail} /> 
-                        <Route exact path="/list/edit/:id" component={FilesUpload} />
-                        <Route exact path="/admin" component={AdministratorBoard} />
+                        <Switch>
+                            <Route exact path="/" component={Home} />
+                            <Route exact path="/upload" component={FilesUpload} />
+                            <Route exact path="/list" component={FilesList} /> 
+                            <Route exact path="/list/details/:id" component={FilesDetail} /> 
+                            <Route exact path="/list/edit/:id" component={FilesUpload} />
+                            <Route exact path="/admin" component={AdministratorBoard} />
+                            <Route component={PageNotFound} />
+                        </Switch>
                     </Container>
 
                     {/* This is used to hide mobile navigation on large devices*/}

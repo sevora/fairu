@@ -1,3 +1,7 @@
+/*
+ * Home Page
+ * Nothing much but this is the homepage
+ */
 import { Grid, Typography, Box, Button } from '@material-ui/core';
 import Image from 'material-ui-image';
 
@@ -11,7 +15,7 @@ export default function Home() {
         >
             <Grid item xs={12} sm={9}> 
                 <Box mx="auto" style={{ 'width': '320px' }}>
-                    <Image src="/fairu-logo/Logo_name.png" style={{ 'width': '100%', 'height': 'auto'}}/>
+                    <Image src="/fairu-logo/Logo_name.png" style={{ width: '100%', height: 'auto', backgroundColor: 'transparent' }}/>
                 </Box> 
             </Grid>
             <Grid item xs={12} sm={9}>

@@ -48,6 +48,9 @@ const contributorSchema = new Schema({
     }
 }, { timestamps: true });
 
+// this uniqueValidator plugin validates all
+// fields with unique: true as unique in the whole
+// collection
 contributorSchema.plugin(uniqueValidator)
 const Contributor = mongoose.model('Contributor', contributorSchema, 'contributors');
 module.exports = Contributor;

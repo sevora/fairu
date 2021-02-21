@@ -14,20 +14,11 @@ import { Alert } from '@material-ui/lab'
 import { Snackbar, Checkbox, Typography, Grid, TextField, FormControl, FormControlLabel, InputLabel, Select, MenuItem, Button, Hidden } from '@material-ui/core';
 import CloudUploadIcon from '@material-ui/icons/CloudUpload';
 
-/*
-const authorizationHeaders = () => {
-    const userData = JSON.parse(localStorage.getItem('userData'))
-
-    if (userData && userData.token) {
-        return { Authorization: 'Bearer ' + userData.token };
-    } 
-    return {};
-}*/
-
 /* 
- * Class Component 
- * because there are several things
- * to keep track of here.
+ * FilesUpload features:
+ * - Form validation
+ * - Dynamic URL entry
+ * - Client feedback
  */
  class FilesUpload extends Component {
     constructor(props) {
@@ -74,22 +65,22 @@ const authorizationHeaders = () => {
             URLAddressRegEx: /[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)?/gi
         }
     }
-
-    // Triggers when filename field is changed. Nothing special.
+    /* Is called when filename field is changed. Nothing special. */  
     onChangeFilename(event) { this.setState({ filename: event.target.value });  }
 
-    // Triggers when description field is changed.
+    /* Is called when description field is changed. */
     onChangeDescription(event) { this.setState({ description: event.target.value }); }
 
-    // Triggers when tags field is changed.
+    /* Is called when tags field is changed. */
     onChangeTags(event) { this.setState({ tags: event.target.value }); }
 
-    // Triggers when filetype field is changed.
+    /* Is called when filetype field is changed. */
     onChangeFiletype(event) { this.setState({ filetype: event.target.value }); }
 
-    // Triggers when download urls are changed.
-    // This renders several textfields dynamically 
-    // to support multiple URLs (for backups)
+    /* Is called when download urls are changed.
+     * This renders several textfields dynamically 
+     * to support multiple URLs (for backups) 
+     */
     onChangeDownloadURLs(event) {
         let downloadURLs = this.state.downloadURLs.slice(0);
         let index = parseInt(event.target.id.replace('downloadURL-', ''));
@@ -109,7 +100,9 @@ const authorizationHeaders = () => {
         this.setState({ downloadURLs });
     }
 
-    // triggers when submitting form
+    /* 
+     * Is called when submitting the form
+     */
     onSubmit(event) {
 
         // prevents traditional form handling
@@ -200,6 +193,10 @@ const authorizationHeaders = () => {
         }
     }
 
+    /*
+     * Is called when Google Authentication succeeds
+     * and it saves the token via localStorage
+     */
     onSuccessGoogle(response) { 
         axios.post(process.env.REACT_APP_API_URL + '/auth/google', { tokenId: response.tokenId })
             .then(response => {
@@ -210,10 +207,15 @@ const authorizationHeaders = () => {
             });
     }
 
+    /* Is called when Google Authentication fails */
     onFailureGoogle() {
         this.setState({ isError: true, errorMessage: 'Google authorization attempt failed.'});
     }
 
+    /*
+     * This is called when the log-out button is clicked
+     * and it removes the token from memory.
+     */
     onLogoutGoogle() {
         this.setState({ 
             username: '',
@@ -226,20 +228,36 @@ const authorizationHeaders = () => {
         });
     }
 
+    /*
+     * This is called when the component
+     * loads.
+     */
     componentDidMount() {
+        // makes sure the userData exists first
         if (localStorage.getItem('userData') !== null) {
             let userData = JSON.parse(localStorage.getItem('userData'));
+
+            // this sets the state properly
             this.setState({ username: userData.username, email: userData.email, token: userData.token }, () => {
+
+                // this props can be found in the URL for '/edit/:id'
                 if (this.props.match.params.id) {
+
                     let id = this.props.match.params.id;
                     let headers = this.state.token.length > 1 ? { Authorization: 'Bearer ' + this.state.token } : {}; 
+
+                    // this is used to figure out the 'role' of the client
                     axios.get(process.env.REACT_APP_API_URL + '/contributors/role', { headers })
                         .then(response => {
+
+                            // if the client is an administrator then they may get the file details completely
                             if (response.data.isAdmin) {
                                 this.setState({ currentID: id }, () => {
                                     axios.get(process.env.REACT_APP_API_URL + '/files/details/' + this.state.currentID, { headers})
                                         .then(response => {
                                             const { filename, description, filetype, tags, downloadURLs, verified, uploaderEmail, verifierEmail } = response.data;
+
+                                            // this sets the current file details
                                             this.setState({ 
                                                 filename, 
                                                 description,
@@ -252,20 +270,23 @@ const authorizationHeaders = () => {
                                             });
                                         })
                                         .catch(error => {
+                                            // if an error occurs, show them the message
                                             this.setState({ isError: true, errorMessage: 'Could not load file for editing.' });
                                         });
                                 });
                             } else {
+                                // if they are not an admin, redirect them to the details page instead
                                 this.props.history.push({ pathname: '/list/details/' + id })
                             }
                         })
                         .catch(error => {
-                                this.props.history.push({ pathname: '/list/details/' + id })
+                            // if an error occurs redirect them to details instead
+                            this.props.history.push({ pathname: '/list/details/' + id })
                         });
                 }
-
             });
         } else if (this.props.match.params.id) {
+            // finally if they are not even logged-in, redirect them to details of that file instead
             this.props.history.push({ pathname: '/list/details/' + this.props.match.params.id })
         }
 
